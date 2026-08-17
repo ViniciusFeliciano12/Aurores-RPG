@@ -1,0 +1,11 @@
+name = "aurores-rpg"
+main = "@astrojs/cloudflare/entrypoints/server"
+compatibility_date = "2026-08-17"
+compatibility_flags = ["global_fetch_strictly_public"]
+
+[assets]
+directory = "./dist"
+binding = "ASSETS"
+
+[observability]
+enabled = true
