@@ -1,59 +1,13 @@
 ---
-import Layout from '../layouts/Layout.astro';
-import InternalHeader from '../components/InternalHeader.astro';
-import AuthForm from '../components/AuthForm';
+import AuthGatedPage from '../components/AuthGatedPage.astro';
 ---
 
-<Layout title="Fichas de Personagem · Wyrdcall">
-	<InternalHeader active="ficha" redirectIfLoggedOut={false} />
-
-	<main id="ficha-content" class="relative mx-auto flex max-w-5xl flex-col gap-8 px-4 py-16" style="display: none;">
-		<div class="flex flex-col gap-2">
-			<p class="text-xs uppercase tracking-[0.3em] text-muted-foreground">Área do jogador</p>
-			<h1 class="font-display text-3xl font-bold text-foreground">Fichas de Personagem</h1>
-			<p class="text-sm text-muted-foreground">
-				Em construção — em breve você poderá criar e gerenciar seus personagens aqui.
-			</p>
-		</div>
-
-		<div class="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border bg-card/40 px-6 py-16 text-center">
-			<span class="text-3xl">🗡️</span>
-			<p class="text-sm text-muted-foreground">Nenhuma ficha disponível ainda.</p>
-		</div>
-	</main>
-
-	<div
-		id="auth-gate"
-		class="fixed inset-x-0 bottom-0 top-[57px] z-50 items-center justify-center bg-background/30 px-4 backdrop-blur-[2px]"
-		style="display: none;"
-	>
-		<AuthForm client:load />
-	</div>
-</Layout>
-
-<script>
-	import { supabase } from '../lib/supabase';
-
-	const content = document.getElementById('ficha-content');
-	const gate = document.getElementById('auth-gate');
-
-	function reveal() {
-		if (gate) gate.style.display = 'none';
-		if (content) content.style.display = 'flex';
-	}
-
-	function showGate() {
-		if (gate) gate.style.display = 'flex';
-	}
-
-	const { data } = await supabase.auth.getSession();
-	if (data.session?.user) {
-		reveal();
-	} else {
-		showGate();
-	}
-
-	supabase.auth.onAuthStateChange((_event, session) => {
-		if (session?.user) reveal();
-	});
-</script>
+<AuthGatedPage
+	active="ficha"
+	title="Fichas de Personagem · Wyrdcall"
+	eyebrow="Área do jogador"
+	heading="Fichas de Personagem"
+	description="Em construção — em breve você poderá criar e gerenciar seus personagens aqui."
+	icon="🗡️"
+	emptyText="Nenhuma ficha disponível ainda."
+/>

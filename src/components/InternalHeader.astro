@@ -5,7 +5,7 @@ interface NavItem {
 }
 
 interface Props {
-	active: 'ficha' | 'campanha' | 'combate' | 'criacao' | 'glossario' | 'itens';
+	active: 'ficha' | 'campanha' | 'combate' | 'criacao' | 'glossario' | 'itens' | 'perfil';
 	redirectIfLoggedOut?: boolean;
 }
 
@@ -115,17 +115,37 @@ const navItems: Array<NavItem & { key: Props['active'] }> = [
 		}
 	}
 
+	function renderGuest() {
+		const nameEl = document.getElementById('user-name');
+		if (nameEl) nameEl.textContent = 'Visitante';
+
+		const fallbackEl = document.getElementById('user-avatar-fallback');
+		if (fallbackEl) {
+			fallbackEl.textContent = '?';
+			fallbackEl.classList.remove('hidden');
+		}
+
+		document.getElementById('user-avatar-img')?.classList.add('hidden');
+		document.getElementById('sign-out')?.classList.add('hidden');
+	}
+
 	const { data } = await supabase.auth.getSession();
 	const user = data.session?.user;
 
 	if (!user) {
 		if (redirectIfLoggedOut) window.location.href = '/';
+		else renderGuest();
 	} else {
 		renderUser(user);
 	}
 
 	supabase.auth.onAuthStateChange((_event, session) => {
-		if (session?.user) renderUser(session.user);
+		if (session?.user) {
+			renderUser(session.user);
+			document.getElementById('sign-out')?.classList.remove('hidden');
+		} else if (!redirectIfLoggedOut) {
+			renderGuest();
+		}
 	});
 
 	document.getElementById('sign-out')?.addEventListener('click', async () => {

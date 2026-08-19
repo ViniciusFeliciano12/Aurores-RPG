@@ -1,0 +1,80 @@
+---
+import Layout from '../layouts/Layout.astro';
+import InternalHeader from './InternalHeader.astro';
+import AuthForm from './AuthForm';
+
+interface Props {
+	active: 'ficha' | 'campanha' | 'combate' | 'criacao' | 'glossario' | 'itens' | 'perfil';
+	title: string;
+	eyebrow: string;
+	heading: string;
+	description: string;
+	icon: string;
+	emptyText: string;
+	requireAuth?: boolean;
+}
+
+const { active, title, eyebrow, heading, description, icon, emptyText, requireAuth = true } = Astro.props;
+---
+
+<Layout title={title}>
+	<InternalHeader active={active} redirectIfLoggedOut={false} />
+
+	<main
+		id="page-content"
+		class="relative mx-auto flex max-w-5xl flex-col gap-8 px-4 py-16"
+		style={requireAuth ? 'display: none;' : undefined}
+	>
+		<div class="flex flex-col gap-2">
+			<p class="text-xs uppercase tracking-[0.3em] text-muted-foreground">{eyebrow}</p>
+			<h1 class="font-display text-3xl font-bold text-foreground">{heading}</h1>
+			<p class="text-sm text-muted-foreground">{description}</p>
+		</div>
+
+		<div class="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border bg-card/40 px-6 py-16 text-center">
+			<span class="text-3xl">{icon}</span>
+			<p class="text-sm text-muted-foreground">{emptyText}</p>
+		</div>
+	</main>
+
+	{
+		requireAuth && (
+			<div
+				id="auth-gate"
+				class="fixed inset-x-0 bottom-0 top-[57px] z-50 items-center justify-center bg-background/30 px-4 backdrop-blur-[2px]"
+				style="display: none;"
+			>
+				<AuthForm client:load />
+			</div>
+		)
+	}
+</Layout>
+
+<script>
+	import { supabase } from '../lib/supabase';
+
+	const gate = document.getElementById('auth-gate');
+	if (gate) {
+		const content = document.getElementById('page-content');
+
+		function reveal() {
+			if (gate) gate.style.display = 'none';
+			if (content) content.style.display = 'flex';
+		}
+
+		function showGate() {
+			if (gate) gate.style.display = 'flex';
+		}
+
+		const { data } = await supabase.auth.getSession();
+		if (data.session?.user) {
+			reveal();
+		} else {
+			showGate();
+		}
+
+		supabase.auth.onAuthStateChange((_event, session) => {
+			if (session?.user) reveal();
+		});
+	}
+</script>
