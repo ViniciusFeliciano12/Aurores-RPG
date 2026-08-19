@@ -1,4 +1,4 @@
--- Aurores RPG — schema inicial
+-- Wyrdcall — schema inicial
 -- Rode este arquivo inteiro no SQL Editor do Supabase (dashboard do projeto).
 
 -- ─────────────────────────────────────────────────────────────

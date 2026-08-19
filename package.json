@@ -1,5 +1,5 @@
 {
-  "name": "aurores-rpg",
+  "name": "wyrdcall",
   "type": "module",
   "version": "0.0.1",
   "engines": {
@@ -24,5 +24,9 @@
     "react-dom": "^19.2.8",
     "tailwindcss": "^4.3.3",
     "wrangler": "^4.123.0"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.10",
+    "typescript": "^6.0.3"
   }
 }

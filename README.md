@@ -1,4 +1,4 @@
-# Aurores RPG
+# Wyrdcall
 
 Stack: [Astro](https://astro.build) (SSR) + [React](https://react.dev) (islands interativas) + [Tailwind CSS](https://tailwindcss.com) + [Supabase](https://supabase.com) (backend), publicado como Cloudflare Worker via [Wrangler](https://developers.cloudflare.com/workers/wrangler/).
 
