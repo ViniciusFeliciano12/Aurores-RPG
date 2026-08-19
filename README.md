@@ -1,31 +1,52 @@
 # Wyrdcall
 
-Stack: [Astro](https://astro.build) (SSR) + [React](https://react.dev) (islands interativas) + [Tailwind CSS](https://tailwindcss.com) + [Supabase](https://supabase.com) (backend), publicado como Cloudflare Worker via [Wrangler](https://developers.cloudflare.com/workers/wrangler/).
+Stack: [Astro](https://astro.build) (SSR) + [React](https://react.dev) (islands interativas) + [Tailwind CSS v4](https://tailwindcss.com) + [shadcn/ui](https://ui.shadcn.com) (componentes) + [Supabase](https://supabase.com) (backend), publicado como Cloudflare Worker via [Wrangler](https://developers.cloudflare.com/workers/wrangler/).
 
 ## Estrutura do projeto
 
 ```text
 /
-├── public/                 # assets estáticos (favicon, etc.), copiados 1:1 no build
+├── public/                    # assets estáticos (favicon, etc.), copiados 1:1 no build
 ├── src/
-│   ├── pages/              # rotas do site (roteamento por sistema de arquivos)
-│   │   └── index.astro
+│   ├── pages/                 # rotas do site (roteamento por sistema de arquivos)
+│   │   ├── index.astro        # home: hero + login/cadastro + grade de áreas do sistema
+│   │   └── personagens.astro  # scaffold da área de fichas (protegida por sessão)
+│   ├── layouts/
+│   │   └── Layout.astro       # <html>/<head> base, importa global.css
+│   ├── components/
+│   │   ├── App.tsx            # decide sessão: mostra AuthForm ou redireciona logado
+│   │   ├── AuthForm.tsx        # formulário de login/cadastro (Supabase Auth)
+│   │   ├── PasswordInput.tsx  # input de senha com toggle mostrar/ocultar
+│   │   └── ui/                 # componentes shadcn/ui (button, input, card, label...)
 │   ├── styles/
-│   │   └── global.css      # entrada do Tailwind
+│   │   └── global.css         # entrada do Tailwind + tokens de tema (CSS variables)
 │   └── lib/
-│       └── supabase.ts     # client do Supabase (usa PUBLIC_SUPABASE_URL/ANON_KEY)
-├── astro.config.mjs        # integrações: react, tailwind, adapter cloudflare
-├── wrangler.toml           # config do Worker (nome, assets, observability)
+│       ├── supabase.ts        # client do Supabase (usa PUBLIC_SUPABASE_URL/ANON_KEY)
+│       └── utils.ts           # helper `cn()` (clsx + tailwind-merge) usado pelo shadcn/ui
+├── components.json            # config do shadcn/ui (estilo, aliases, ícones)
+├── astro.config.mjs           # integrações: react, tailwind, adapter cloudflare
+├── wrangler.toml               # config do Worker (nome, assets, observability)
 ├── supabase/
 │   └── migrations/
-│       ├── 0000_reset.sql  # apaga o schema (uso só em dev, para reaplicar 0001 do zero)
-│       └── 0001_init.sql   # schema real: tabelas, triggers e policies de RLS
-└── .env.example            # modelo das env vars necessárias
+│       ├── 0000_reset.sql     # apaga o schema (uso só em dev, para reaplicar 0001 do zero)
+│       └── 0001_init.sql      # schema real: tabelas, triggers e policies de RLS
+└── .env.example                # modelo das env vars necessárias
 ```
 
-Componentes React ficam em `src/components/` (crie a pasta quando precisar) e só rodam
-JS no client quando usados com uma diretiva `client:*` (ex.: `client:load`), mantendo o
-restante do site como HTML estático.
+Componentes React ficam em `src/components/` e só rodam JS no client quando usados com
+uma diretiva `client:*` (ex.: `client:load`), mantendo o restante do site como HTML
+estático. Os componentes de UI genéricos (botão, input, card...) vivem em
+`src/components/ui/` e são gerados pelo shadcn/ui — código seu, editável, não uma
+dependência escondida em `node_modules`.
+
+### Adicionando componentes do shadcn/ui
+
+```sh
+npx shadcn@latest add <componente>   # ex.: npx shadcn@latest add dialog
+```
+
+O tema (cores, raio de borda, fontes) é definido como CSS variables em
+`src/styles/global.css`; o site roda sempre no tema escuro definido em `:root`.
 
 ## Configuração inicial
 
