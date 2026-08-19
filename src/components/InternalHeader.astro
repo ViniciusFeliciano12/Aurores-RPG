@@ -6,9 +6,10 @@ interface NavItem {
 
 interface Props {
 	active: 'ficha' | 'campanha' | 'combate' | 'criacao' | 'glossario' | 'itens';
+	redirectIfLoggedOut?: boolean;
 }
 
-const { active } = Astro.props;
+const { active, redirectIfLoggedOut = true } = Astro.props;
 
 const navItems: Array<NavItem & { key: Props['active'] }> = [
 	{ key: 'ficha', href: '/personagens', label: 'Ficha' },
@@ -20,7 +21,11 @@ const navItems: Array<NavItem & { key: Props['active'] }> = [
 ];
 ---
 
-<header class="relative flex items-center justify-between gap-4 border-b border-border bg-background/80 px-4 py-3 backdrop-blur sm:px-6">
+<header
+	id="internal-header"
+	data-redirect-if-logged-out={redirectIfLoggedOut}
+	class="relative flex items-center justify-between gap-4 border-b border-border bg-background/80 px-4 py-3 backdrop-blur sm:px-6"
+>
 	<a href="/" class="flex shrink-0 items-center gap-2">
 		<span class="text-primary">⚡</span>
 		<span class="font-display text-sm font-bold tracking-widest text-primary">WYRDCALL</span>
@@ -75,12 +80,9 @@ const navItems: Array<NavItem & { key: Props['active'] }> = [
 <script>
 	import { supabase } from '../lib/supabase';
 
-	const { data } = await supabase.auth.getSession();
-	const user = data.session?.user;
+	const redirectIfLoggedOut = document.getElementById('internal-header')?.dataset.redirectIfLoggedOut !== 'false';
 
-	if (!user) {
-		window.location.href = '/';
-	} else {
+	function renderUser(user: NonNullable<Awaited<ReturnType<typeof supabase.auth.getSession>>['data']['session']>['user']) {
 		const displayName =
 			(user.user_metadata?.display_name as string | undefined) ||
 			(user.user_metadata?.full_name as string | undefined) ||
@@ -95,18 +97,36 @@ const navItems: Array<NavItem & { key: Props['active'] }> = [
 		if (fallbackEl) fallbackEl.textContent = displayName.trim().charAt(0).toUpperCase() || '?';
 
 		const imgEl = document.getElementById('user-avatar-img') as HTMLImageElement | null;
-		if (avatarUrl && imgEl) {
-			imgEl.src = avatarUrl;
-			imgEl.addEventListener('load', () => {
-				imgEl.classList.remove('hidden');
-				fallbackEl?.classList.add('hidden');
-			});
-			imgEl.addEventListener('error', () => {
+		if (imgEl) {
+			if (avatarUrl) {
+				imgEl.src = avatarUrl;
+				imgEl.addEventListener('load', () => {
+					imgEl.classList.remove('hidden');
+					fallbackEl?.classList.add('hidden');
+				});
+				imgEl.addEventListener('error', () => {
+					imgEl.classList.add('hidden');
+					fallbackEl?.classList.remove('hidden');
+				});
+			} else {
 				imgEl.classList.add('hidden');
 				fallbackEl?.classList.remove('hidden');
-			});
+			}
 		}
 	}
+
+	const { data } = await supabase.auth.getSession();
+	const user = data.session?.user;
+
+	if (!user) {
+		if (redirectIfLoggedOut) window.location.href = '/';
+	} else {
+		renderUser(user);
+	}
+
+	supabase.auth.onAuthStateChange((_event, session) => {
+		if (session?.user) renderUser(session.user);
+	});
 
 	document.getElementById('sign-out')?.addEventListener('click', async () => {
 		await supabase.auth.signOut();
