@@ -1,14 +1,367 @@
 ---
-import AuthGatedPage from '../components/AuthGatedPage.astro';
+import Layout from '../layouts/Layout.astro';
+import InternalHeader from '../components/InternalHeader.astro';
+
+interface Entry {
+	term: string;
+	abbr?: string;
+	def: string;
+}
+
+interface Category {
+	key: string;
+	icon: string;
+	title: string;
+	entries: Entry[];
+}
+
+const categories: Category[] = [
+	{
+		key: 'atributos',
+		icon: '◆',
+		title: 'Atributos Base',
+		entries: [
+			{ term: 'FOR', abbr: 'Força', def: 'Atributo de força física. Influencia ações corporais, arremesso e luta. Gerado rolando <strong>3d6 × 5</strong>.' },
+			{ term: 'INT', abbr: 'Inteligência', def: 'Determina os <strong>pontos de Interesse Pessoal</strong> (INT × 2) disponíveis na criação do personagem — distribuídos livremente entre as perícias.' },
+			{ term: 'DES', abbr: 'Destreza', def: 'Agilidade e coordenação motora. Base para ações que exigem precisão e reflexo rápido.' },
+			{ term: 'CON', abbr: 'Constituição', def: 'Resistência física do personagem. Junto com TAM, define o <strong>HP máximo</strong>: <em>(CON + TAM) ÷ 5</em>. Junto com POD, define a <strong>Postura máxima</strong>: <em>(CON + POD) ÷ 5</em>.' },
+			{ term: 'APA', abbr: 'Aparência', def: 'Presença e carisma físico do personagem. Pode influenciar interações sociais a critério do Mestre.' },
+			{ term: 'POD', abbr: 'Poder', def: 'Potência mágica inata. Define os <strong>PM máximos</strong>: <em>POD ÷ 5</em>. Também compõe a Postura máxima junto com CON.' },
+			{ term: 'TAM', abbr: 'Tamanho', def: 'Representa a compleição física e massa corporal. Contribui para o cálculo do <strong>HP máximo</strong> junto com CON.' },
+			{ term: 'EDU', abbr: 'Educação', def: 'Nível de escolaridade e treinamento formal. Define os <strong>pontos de Ocupação</strong> (EDU × 4), distribuídos <em>exclusivamente</em> nas 8 perícias da Especialização escolhida.' },
+		],
+	},
+	{
+		key: 'derivados',
+		icon: '♥',
+		title: 'Recursos Derivados',
+		entries: [
+			{ term: 'HP', abbr: 'Pontos de Vida', def: 'Calculado como <em>(CON + TAM) ÷ 5</em>. Representa a saúde física real. Só é reduzido quando feitiços de dano passam pela Postura — tomar dano de HP <strong>não</strong> zera a Postura automaticamente.' },
+			{ term: 'PM', abbr: 'Pontos de Magia', def: 'Calculado como <em>POD ÷ 5</em>. Recurso para habilidades especiais: <strong>Translocação</strong> (custa 3 PM) e <strong>Overcast</strong> (custa 1 PM por benefício escolhido — distância, dano extra ou alvo adicional em área). Zerar os PM causa <strong>Exaustão</strong>.' },
+			{ term: 'Postura', def: 'Calculada como <em>(CON + POD) ÷ 5</em>. "Escudo de guarda" do personagem. Os estados são: <strong>Saudável</strong> (acima de 50%), <strong>Cansada</strong> (até 50%), <strong>Desgastada</strong> (até 25%) e <strong>Quebrada</strong> (zero). O estado determina como feitiços de Dano penetram a defesa.' },
+			{ term: 'Sorte', def: 'Recurso permanente (não se recupera facilmente). Após rolar, gaste <strong>1 ponto</strong> para subir <strong>um nível de sucesso</strong> (Falha → Regular → Difícil → Extremo), sempre um nível por vez. Não funciona em <strong>Falha Crítica</strong> (resultado 100). Use com parcimônia — cada ponto queimado é permanente.' },
+		],
+	},
+	{
+		key: 'testes',
+		icon: '🎲',
+		title: 'Sistema de Testes d100',
+		entries: [
+			{ term: 'd100', abbr: 'Dado Percentual', def: 'O dado central do sistema. Role e compare ao <strong>valor da perícia</strong>: resultado ≤ perícia = sucesso. Quanto mais baixo o resultado, melhor o nível do sucesso.' },
+			{ term: 'Sucesso Regular', def: 'Resultado ≤ valor da perícia. Nível básico de sucesso. Em uma perícia de 60%, equivale a tirar 01–60.' },
+			{ term: 'Sucesso Difícil', def: 'Resultado ≤ <strong>metade</strong> da perícia. Sucesso de qualidade superior. Em uma perícia de 60%, equivale a tirar 01–30.' },
+			{ term: 'Sucesso Extremo', def: 'Resultado ≤ <strong>um quinto</strong> da perícia. Quase perfeito. Em uma perícia de 60%, equivale a tirar 01–12.' },
+			{ term: 'Crítico', def: 'Resultado = <strong>01</strong> (sempre). O nível de sucesso máximo possível, independente da perícia. No rank SS do Medidor de Estilo, acertos críticos causam <strong>dano máximo</strong>.' },
+			{ term: 'Falha Crítica', abbr: 'Fumble', def: 'Resultado = <strong>100</strong> (sempre). Além de falhar, o personagem sofre uma consequência severa a critério do Mestre — varinha derrubada, tropeço, feitiço desviado para aliado, etc. <strong>Sorte não pode evitar ou reduzir uma Falha Crítica.</strong>' },
+			{ term: 'Vantagem', def: 'Role <strong>2d100 e use o menor</strong> resultado. Obtida em situações favoráveis, como flanquear o inimigo ou receber apoio de aliado.' },
+			{ term: 'Desvantagem', def: 'Role <strong>2d100 e use o maior</strong> resultado. Imposta por penalidades como repetir o mesmo feitiço no duelo, atacar após esquiva no chão, ou penalidade de distância no Sniping.' },
+			{ term: 'Comparação de Níveis', abbr: 'Confrontos', def: 'Quando dois personagens se opõem diretamente (ataque vs. Defesa, por exemplo), vence quem atingiu o <strong>nível de sucesso mais alto</strong>. Em empate, <strong>vence o defensor</strong>. Ordem: Extremo &gt; Difícil &gt; Regular &gt; Falha.' },
+		],
+	},
+	{
+		key: 'feiticossistema',
+		icon: '✨',
+		title: 'Tipos de Feitiço e Dano',
+		entries: [
+			{ term: 'Feitiço de Dano', abbr: 'Ofensivo', def: 'Causa <strong>1d6 de dano direto no HP</strong>. Sua eficácia depende da <strong>Regra de Colisão</strong>: o estado da Postura do defensor determina se o bloqueio é suficiente para barrar o dano. Se o alvo estiver Vulnerável (Postura 0), recebe +1d6 extra.' },
+			{ term: 'Feitiço de Efeito', abbr: 'Controle', def: 'Objetivo é quebrar a guarda e impor um efeito (paralisar, encadear, desorientar). <strong>Não segue a Regra de Colisão</strong> — o estado da Postura não altera a dificuldade de bloqueio. Bloqueado: drena <strong>1d6 de Postura</strong>. Acertado: drena <strong>2d6 de Postura</strong> — mas o efeito de controle <strong>só entra se isso zerar a Postura do alvo</strong>. Acertar sem zerar a Postura só causa a redução de Postura, sem o controle.' },
+			{ term: 'Melhoria de Assinatura', def: 'Versão aprimorada de um feitiço de assinatura do personagem. Adiciona <strong>+1d4 de redução de Postura</strong> (em feitiços de Efeito) ou <strong>+1d4 de Dano no HP</strong> (em feitiços de Dano). Pode também "Dobrar o Alcance Base", anulando 1 nível de penalidade de distância, ou conceder <strong>Área sem Custo</strong>: o feitiço de Assinatura passa a afetar 2 alvos sem gastar PM (a partir do 3º alvo volta a valer o Overcast normal).' },
+			{ term: 'Assinatura', def: 'Feitiço ou técnica característica do personagem, registrado na ficha. Pode ser melhorado com a <strong>Melhoria de Assinatura</strong>. Repetir feitiços de combate já usados no duelo (mesmo não sendo a assinatura) impõe Desvantagem.' },
+		],
+	},
+	{
+		key: 'colisao',
+		icon: '🛡',
+		title: 'Regra de Colisão e Estados de Postura',
+		entries: [
+			{ term: 'Regra de Colisão', def: 'Mecânica que determina quando um bloqueio é eficaz <em>contra feitiços de Dano</em>. O estado atual da Postura define o limiar: quanto mais baixa a Postura, maior precisa ser o nível de sucesso na Defesa para barrar o dano no HP.' },
+			{ term: 'Postura Saudável', def: 'Postura <strong>acima de 50%</strong> do máximo. Qualquer Sucesso na Defesa (Regular, Difícil ou Extremo) bloqueia feitiços de Dano — o personagem só perde Postura, não HP.' },
+			{ term: 'Postura Cansada', def: 'Postura em <strong>50% ou menos</strong>. Para bloquear feitiços de Dano sem perder HP, o nível de Sucesso na Defesa deve ser <strong>igual ou maior</strong> que o do Ataque inimigo.' },
+			{ term: 'Postura Desgastada', def: 'Postura em <strong>25% ou menos</strong>. Para bloquear feitiços de Dano sem perder HP, o nível de Sucesso na Defesa deve ser <strong>estritamente maior</strong> que o do Ataque inimigo.' },
+			{ term: 'Postura Quebrada', abbr: 'Vulnerável', def: 'Postura em <strong>zero</strong>. Impossível bloquear ou esquivar. Todos os ataques acertam automaticamente e causam dano no HP com <strong>+1d6 extra</strong>. Aplica-se tanto a Feitiços de Dano quanto a Feitiços de Efeito.' },
+			{ term: 'Bloqueio Oportuno', def: 'Bloquear com <strong>sucesso</strong> um Feitiço de Dano, além de impedir o dano no HP, <em>recupera</em> <strong>1d4 de Postura</strong>. Uma das principais formas de recuperar guarda em combate.' },
+		],
+	},
+	{
+		key: 'acoes',
+		icon: '⚡',
+		title: 'Ações de Turno',
+		entries: [
+			{ term: 'Ação de Movimento', def: 'Deslocar-se pelo grid. Deslocamento base: <strong>6 quadrados (9m)</strong> por turno. Pode ser perdida se o personagem estiver sob efeito de <strong>Restrição</strong> de cenário inimigo.' },
+			{ term: 'Ação de Combate', def: 'Atacar (feitiço de Dano ou de Efeito), usar <strong>Foco</strong> para recuperar Postura, ou usar um item. É a ação principal ofensiva/defensiva do turno.' },
+			{ term: 'Ação de Cenário', abbr: 'Suporte', def: 'Usar magias (Transfiguração, Encantamento etc.) para manipular o ambiente. Tipos: <em>Restrição, Criar Barreira, Afetar os Sentidos, Impacto Ambiental</em> e <em>Manipulação</em>. Restrição, Afetar os Sentidos, Impacto Ambiental e Manipulação miram um alvo e ficam congelados até ele reagir. Criar Barreira é diferente — não mira ninguém (protege quem a criou ou um aliado), então vale de imediato, sem congelamento.' },
+			{ term: 'Ação de Foco', def: 'Gasta a <strong>Ação de Combate</strong> para se concentrar e recuperar <strong>um quarto da Postura Máxima</strong>. Ideal quando a Postura está baixa e o personagem precisa restaurar a guarda antes de continuar combatendo.' },
+			{ term: 'Bloqueio', def: 'Reação defensiva — rola Defesa Mágica. Contra Efeitos: empate de nível basta; consome 1d6 de Postura (bloqueio) ou 2d6 (falha, e o efeito de controle só entra se isso zerar a Postura). Contra Dano: segue a Regra de Colisão; sucesso recupera 1d4 de Postura.' },
+			{ term: 'Esquiva', def: 'Reação defensiva — rola perícia física. Evita <strong>totalmente</strong> o feitiço. Punição: o personagem fica no chão, impondo <strong>Desvantagem</strong> no próximo ataque. Atacar com sucesso após esquiva no chão recupera <strong>1d4 de Postura</strong>.' },
+			{ term: 'Translocação', def: 'Reação defensiva ou Ação de Movimento — <strong>custa 3 PM</strong>. Como reação: evita o ataque automaticamente e teleporta até <strong>12 quadrados</strong>. Como Ação de Movimento: teleporta até 12 quadrados <strong>e ainda deixa a Ação de Combate livre para atacar</strong> no mesmo turno, além de <strong>anular automaticamente</strong> qualquer Ação de Cenário congelada contra você. Surgir no flanco/costas do inimigo garante <strong>+1 nível no Medidor de Estilo</strong> e conta como Flanqueio Perfeito. Diferente do <strong>Dash</strong>, que consome a Ação de Combate e não anula nada.' },
+			{ term: 'Overcast', def: 'Gasta <strong>1 PM</strong> por benefício escolhido: reduzir em 1 nível a penalidade de distância no Sniping, adicionar <strong>+1d4</strong> de dano extra (Vida ou Postura), habilitar o feitiço a afetar mais de um alvo em área, ou <strong>Anular Desvantagem</strong>. Errar um ataque à distância com Overcast ativo causa perda de 1 nível no Medidor de Estilo.' },
+			{ term: 'Anular Desvantagem', def: 'Benefício do Overcast: anula 1 Desvantagem em qualquer rolagem, gastando 1 PM por Desvantagem anulada — pode ser usado várias vezes na mesma rolagem.' },
+			{ term: 'Feitiços em Área', def: 'Habilitados via Overcast ("Afetar em Área"). Custa <strong>1 PM por alvo extra</strong> além do primeiro. A rolagem de ataque é independente para cada alvo afetado.' },
+			{ term: 'Ataque Duplo', def: 'Na Ação de Combate, o jogador pode realizar dois ataques em vez de um, desde que sejam <strong>dois feitiços diferentes</strong> (repetir o mesmo conta como Sistema de Combos). Cada ataque sofre <strong>Desvantagem</strong>, cumulativa com outras Desvantagens aplicáveis.' },
+			{ term: 'Sistema de Combos', def: 'Repetir o mesmo feitiço de combate já usado no duelo gera <strong>Desvantagem</strong> na rolagem. Variar os feitiços usados evita a penalidade e favorece a subida no Medidor de Estilo.' },
+			{ term: 'Dash', def: 'Uso da Ação de Combate (em vez de atacar) para se deslocar o <strong>dobro do deslocamento base (12 quadrados)</strong> — mesma distância da Translocação, mas <strong>sem custar PM</strong>. Como consome a Ação de Combate, <strong>não permite atacar</strong> no turno. Não teleporta, não ignora terreno e <strong>não anula</strong> Ações de Cenário congeladas contra você.' },
+		],
+	},
+	{
+		key: 'cenario',
+		icon: '🚪',
+		title: 'Tipos de Ação de Cenário e Embate Ambiental',
+		entries: [
+			{ term: 'Restrição', def: 'Tipo de Ação de Cenário bem-sucedida. <strong>Prende o alvo</strong> — ele perde a Ação de Movimento no próximo turno. Fica <strong>congelada</strong> até o alvo reagir: nesse momento ele escolhe sofrer o efeito, Translocar (Ação de Movimento) para anulá-lo, ou contestar via Embate Ambiental.' },
+			{ term: 'Criar Barreira', def: 'Tipo de Ação de Cenário bem-sucedida. Ergue uma <strong>barreira física ou mágica</strong> para proteger <strong>quem a criou ou um aliado à sua escolha</strong> — não mira nenhum alvo inimigo, então <strong>não fica congelada</strong> nem espera reação de ninguém. Vale imediatamente: qualquer ataque inimigo contra o protegido sofre <em>Desvantagem</em> a partir dali, até a barreira ser destruída/revertida via Embate Ambiental.' },
+			{ term: 'Afetar os Sentidos', def: 'Tipo de Ação de Cenário bem-sucedida. Ofusca, ensurdece ou distrai o alvo, impondo <em>Desvantagem</em> na próxima Defesa dele. Fica <strong>congelado</strong> até o alvo reagir: nesse momento ele escolhe sofrer o efeito, Translocar para anulá-lo, ou contestar via Embate Ambiental.' },
+			{ term: 'Impacto Ambiental', def: 'Tipo de Ação de Cenário bem-sucedida. Arremessa objetos físicos contra o inimigo, causando <strong>1d4 de Dano de Postura</strong> direto, sem passar pela Regra de Colisão. Esse dano fica <strong>congelado</strong> até o alvo reagir, que então escolhe sofrê-lo, usar a Translocação como Ação de Movimento para anulá-lo, ou contestar via Embate Ambiental.' },
+			{ term: 'Manipulação', def: 'Tipo de Ação de Cenário bem-sucedida. <strong>Desarma o inimigo</strong> ou rouba itens de sua posse, ou mexe no cenário sem mirar ninguém (porta, alavanca). A tentativa com alvo fica <strong>congelada</strong> até ele reagir, que pode Translocar para anulá-la ou usar sua própria Ação de Cenário para contestar via Embate Ambiental.' },
+			{ term: 'Embate Ambiental', def: 'Mecânica de reação à Ação de Cenário inimiga. Três opções: <em>Anular/Destruir</em> (Nível de Sucesso Igual), <em>Reverter/Ofensivo</em> (Nível de Sucesso Maior) ou <em>Ignorar e Retaliar</em> (cria efeito novo).' },
+			{ term: 'Sniping', abbr: 'Ataque à Distância', def: 'Sistema de penalidade por alcance. Curto (1–6 sq): sem penalidade. Médio (7–12 sq): 1 Desvantagem. Longo (13–18 sq): 2 Desvantagens. Cada faixa além impõe +1 Desvantagem. Use <strong>Overcast</strong> para reduzir.' },
+		],
+	},
+	{
+		key: 'estilo',
+		icon: '🏆',
+		title: 'Medidor de Estilo',
+		entries: [
+			{ term: 'Medidor de Estilo', def: 'Sistema de ranqueamento dinâmico em combate. Varia de <strong>D</strong> (base) a <strong>SSS</strong> (máximo). Sobe ao variar feitiços, fazer Esquivas, realizar Sinergia ou Flanqueio Perfeito. Desce ao repetir feitiços, falhar em Ações de Cenário ou usar sempre a mesma tática.' },
+			{ term: 'Rank D / C', def: 'Níveis base do Medidor de Estilo. Sem benefícios especiais. D é o ponto de partida de cada combate.' },
+			{ term: 'Rank B', def: 'Primeiro rank com benefício ativo: <strong>+5% em Magia de Combate</strong> durante o confronto.' },
+			{ term: 'Rank A', def: 'Benefício ativo: <strong>+1 dado de dano de Postura</strong> em todos os feitiços de Efeito.' },
+			{ term: 'Rank S', def: 'Benefício ativo: <strong>Recupera 1 PM</strong> cada vez que acerta um feitiço.' },
+			{ term: 'Rank SS', abbr: 'Crítico Ampliado', def: 'Benefício ativo: <strong>acertos críticos causam dano máximo</strong> — todos os dados do ataque são considerados como se tivessem tirado o valor mais alto.' },
+			{ term: 'Rank SSS', def: 'Benefício máximo: pode <strong>rolar um dado novamente</strong>, 1× por turno — escolhe qual resultado usar.' },
+			{ term: 'Flanqueio Perfeito', def: 'Ação de usar a <strong>Translocação</strong> para surgir no flanco ou costas do inimigo, contornando a cobertura. Concede <strong>+1 nível no Medidor de Estilo</strong>.' },
+			{ term: 'Sinergia', def: 'Concede <strong>+1 nível no Medidor de Estilo</strong> quando o personagem <strong>acerta uma Ação de Cenário e uma Ação de Combate no mesmo turno</strong>.' },
+		],
+	},
+	{
+		key: 'criacao',
+		icon: '📖',
+		title: 'Criação e Evolução de Personagem',
+		entries: [
+			{ term: 'Ocupação', abbr: 'Pontos de Especialização', def: 'Calculado como <strong>EDU × 4</strong>. Distribuído <em>exclusivamente</em> entre as 8 perícias fixas da Especialização escolhida. Nenhuma perícia pode ultrapassar <strong>75%</strong> na criação com esses pontos.' },
+			{ term: 'Interesse Pessoal', def: 'Calculado como <strong>INT × 2</strong>. Pontos livres que podem ser distribuídos em <em>qualquer</em> perícia da ficha, inclusive fora das 8 da Especialização. Também respeitam o limite de 75% na criação.' },
+			{ term: 'Limite de Criação', def: 'Nenhuma perícia pode passar de <strong>75%</strong> durante a distribuição de pontos de criação. O bônus do <strong>Método de Ensino</strong> (escola de magia) é somado <em>depois</em> e pode ultrapassar esse limite.' },
+			{ term: 'Evolução de Perícias', def: 'Ao fim de cada missão, role <strong>1d100</strong> para cada perícia marcada durante a sessão. Se tirar um resultado <strong>maior</strong> que o valor atual da perícia, ganhe <strong>1d10 pontos</strong> nela.' },
+			{ term: 'Especialização', def: 'Define o perfil tático e as 8 perícias de Ocupação do personagem. Existem <strong>20 especializações</strong> divididas em 4 linhas: <em>Combate, Investigação, Social</em> e <em>Campo</em>. As perícias destacadas em dourado na ficha correspondem à especialização ativa.' },
+			{ term: 'Patente', def: 'Nível hierárquico do Agente dentro do Conselho Arcano, refletindo experiência, confiabilidade e acesso ao arsenal de missão. Evolui conforme o Agente demonstra resultados em campo.' },
+			{ term: 'Porcentagem de Experiência de Patente', def: 'Progresso de 0% a 100% acumulado na Patente atual conforme o Agente completa missões (tipicamente +5% a +25% por missão). Ao atingir 100%, promove automaticamente para a próxima Patente e reseta a 0%.' },
+			{ term: 'Método de Ensino', def: 'Define onde e como o Agente estudou. Concede bônus fixos de perícia e/ou PM que refletem a tradição mágica de cada região, somados após a distribuição de Ocupação e Interesse Pessoal.' },
+		],
+	},
+	{
+		key: 'especializacoes',
+		icon: '🗲',
+		title: 'Especializações de Agente',
+		entries: [
+			{ term: 'Duelista de Linha', abbr: 'Linha de Combate', def: 'Agente clássico de duelo formal — troca feitiços cara a cara e lê a guarda do oponente. Sobe rank rápido no Medidor de Estilo ao variar feitiços em duelo direto.' },
+			{ term: 'Artilheiro de Cerco', abbr: 'Linha de Combate', def: 'Pensa em distância, ângulo e Overcast. Alcance Ampliado: ataca sem Desvantagem até 12 quadrados (18m).' },
+			{ term: 'Caçador das Trevas', abbr: 'Linha de Combate', def: 'Conhece as Artes das Trevas para melhor combatê-las. Único com acesso confortável a Magia das Trevas.' },
+			{ term: 'Combatente Corpo-a-Corpo', abbr: 'Linha de Combate', def: 'Quando a varinha falha ou é desarmada, este Agente já está com os punhos prontos. Recupera Postura com facilidade via Ataque após Esquiva.' },
+			{ term: 'Cavaleiro Aéreo', abbr: 'Linha de Combate', def: 'Leva o duelo para o ar, combinando manobras aéreas com magia de combate em pleno voo. Flanqueios aéreos contam em dobro para Flanqueio Perfeito.' },
+			{ term: 'Investigador Forense', abbr: 'Linha de Investigação', def: 'Lê a cena do crime mágico como um livro aberto — vestígios, feitiços residuais e provas. Excelente em Ações de Cenário.' },
+			{ term: 'Especialista em Necro-investigação', abbr: 'Linha de Investigação', def: 'Investiga magia das trevas, maldições e mortes suspeitas sem se deixar corromper pelo tema.' },
+			{ term: 'Rastreador Mágico', abbr: 'Linha de Investigação', def: 'Segue trilhas que ninguém mais vê — mágicas, animais ou humanas — por qualquer terreno. Ideal para perseguições.' },
+			{ term: 'Analista Arcano', abbr: 'Linha de Investigação', def: 'Decifra runas, calcula aritmancia e reconstrói feitiços a partir de fragmentos teóricos. Referência para identificar objetos amaldiçoados.' },
+			{ term: 'Agente de Inteligência', abbr: 'Linha de Investigação', def: 'Coleta informação antes que a missão comece — contatos, escutas e disfarces. Prefere resolver com informação antes do confronto.' },
+			{ term: 'Diplomata do Conselho', abbr: 'Linha Social', def: 'Ponte entre o Conselho Arcano, outras nações mágicas e o mundo não-mágico. Transforma confrontos em Ações de Cenário sociais.' },
+			{ term: 'Infiltrador Social', abbr: 'Linha Social', def: 'Entra em festas, repartições e círculos fechados sem nunca ser quem diz que é. A Translocação para flanco/costas é a assinatura tática quando o disfarce cai.' },
+			{ term: 'Negociador de Crise', abbr: 'Linha Social', def: 'Entra em cena para evitar algo irreversível. Especialista em desescalar confrontos antes do Medidor de Estilo.' },
+			{ term: 'Especialista em Assuntos Externos', abbr: 'Linha Social', def: 'Vive na fronteira entre os dois mundos, resolvendo incidentes que envolvem não-mágicos.' },
+			{ term: 'Mediador Mágico-Criatura', abbr: 'Linha Social', def: 'Fala a língua de criaturas mágicas e comunidades não-humanas, evitando conflitos por tradução.' },
+			{ term: 'Batedor de Fronteira', abbr: 'Linha de Campo', def: 'Vive em território hostil, mapeando rotas e sobrevivendo onde o Conselho não alcança.' },
+			{ term: 'Naturalista Arcano', abbr: 'Linha de Campo', def: 'Trata com criaturas e ambientes selvagens, tão à vontade numa floresta quanto num duelo. Pré-requisito para comandar criaturas em Ações de Cenário.' },
+			{ term: 'Curandeiro de Campo', abbr: 'Linha de Campo', def: 'Mantém a equipe em pé longe de qualquer hospital mágico, improvisando tratamento. Prioriza Ação de Foco em combate.' },
+			{ term: 'Alquimista de Campo', abbr: 'Linha de Campo', def: 'Prepara poções e reagentes improvisados em campo, transformando ingredientes locais em soluções táticas.' },
+			{ term: 'Explorador de Ruínas', abbr: 'Linha de Campo', def: 'Adentra túmulos, templos e ruínas esquecidas em busca de relíquias. Especialista em desarmar armadilhas mágicas antigas.' },
+		],
+	},
+	{
+		key: 'escolas',
+		icon: '🏰',
+		title: 'Métodos de Ensino — Escolas e Regiões',
+		entries: [
+			{ term: 'Academia Real de Artes Arcanas', abbr: 'Reino de Albian', def: 'Tradição equilibrada entre diferentes linhagens internas — formação generalista e versátil. +10% em Encantamento ou Defesa Mágica (escolha na criação), +5% em Magia de Combate.' },
+			{ term: 'Instituto Ilverwood', abbr: 'República de Ilvera', def: 'Escola jovem e pragmática, conhecida por duelistas rápidos e variantes de feitiço próprias. +10% em Magia de Combate, +5% em Conjuração.' },
+			{ term: 'Conservatório Fleurdelune', abbr: 'Ducado de Fleurmont', def: 'Refinamento e sutileza — magia tratada quase como uma arte performática. +10% em Charme, +10% em Prestidigitação.' },
+			{ term: 'Academia Tenkai', abbr: 'Ilhas de Tenrai', def: 'Disciplina rígida; alunos aprendem a voar antes mesmo de dominar a varinha com firmeza. +15% em Voo Arcano, +5% em Esquiva.' },
+			{ term: 'Grande Academia de Uzuri', abbr: 'Planaltos de Uzuri', def: 'A maior escola de magia do mundo — canaliza magia diretamente pelo corpo e gestos, sem varinha. +10% em Conjuração. Concede <strong>Magia sem Varinha</strong>.' },
+			{ term: 'Magia sem Varinha', def: 'Habilidade especial da Grande Academia de Uzuri: lançar qualquer feitiço de Efeito ou de Cenário (não-ofensivo) sem varinha em mãos, pagando 1 PM extra por uso. Feitiços de Dano ainda exigem varinha normalmente.' },
+			{ term: 'Castelo Verdemata', abbr: 'Selva de Verdemata', def: 'Erguido em meio à floresta; ensino centrado em plantas, criaturas e magia natural. +10% em Herbologia, +10% em Trato de Criaturas.' },
+			{ term: 'Fortaleza Kolvenar', abbr: 'Terras Geladas de Kolvenar', def: 'Formação dura, voltada à sobrevivência em climas hostis e ao combate direto. +10% em Sobrevivência, +5% em Magia de Combate.' },
+			{ term: 'Academia Nortfang', abbr: 'Fiordes de Nortfang', def: 'Currículo que não evita as Artes das Trevas, formando agentes agressivos e diretos. +10% em Magia das Trevas, +5% em Intimidação.' },
+			{ term: 'Ensino Domiciliar', abbr: 'Sem escola fixa', def: 'Formação fora de qualquer instituição — tutores particulares, familiares bruxos ou autodidatismo. Concede +5% em duas perícias à escolha, ou +12% em uma perícia à escolha.' },
+		],
+	},
+	{
+		key: 'patentes',
+		icon: '🎖',
+		title: 'Patentes do Conselho',
+		entries: [
+			{ term: 'Cadete', abbr: 'Rank 1', def: 'Agente em treinamento supervisionado. Ainda não possui autonomia operacional plena. Acesso apenas ao equipamento básico de campo.' },
+			{ term: 'Investigador', abbr: 'Rank 2', def: 'Agente certificado para missões de baixo a médio risco. Trabalha de forma semi-independente com supervisão ocasional.' },
+			{ term: 'Agente Pleno', abbr: 'Rank 3', def: 'Agente operacional pleno. Autorizado a conduzir missões de alto risco de forma independente e liderar esquadrões em campo.' },
+			{ term: 'Inspetor', abbr: 'Rank 4', def: 'Veterano com histórico em operações críticas. Autorizado a requisitar equipamentos estratégicos de uso restrito.' },
+			{ term: 'Comandante', abbr: 'Rank 5', def: 'Autoridade máxima de campo no Conselho. Acesso irrestrito ao arsenal completo. Decide o destino de missões críticas.' },
+		],
+	},
+	{
+		key: 'criaturas',
+		icon: '🐾',
+		title: 'Criaturas Mágicas em Cenário',
+		entries: [
+			{ term: 'Uso de Criaturas Mágicas em Ações de Cenário', def: 'Em vez de lançar um feitiço, o Agente comanda uma criatura mágica sob seu controle para executar a Ação de Cenário, usando Trato de Criaturas Mágicas no lugar da perícia mágica normalmente exigida. Pré-requisito: Especialização em Naturalista Arcano ou a perícia treinada. A criatura deve estar presente na cena e sob controle do personagem; falha não tem custo adicional.' },
+			{ term: 'Vida e Postura da Criatura', def: 'Criaturas mágicas comandadas têm HP e Postura próprios, definidos pelo Mestre conforme espécie, raridade e poder — podem ser alvejadas e ficam incapacitadas se seus pontos se esgotarem.' },
+		],
+	},
+	{
+		key: 'exaustao',
+		icon: '💀',
+		title: 'Exaustão (PM = 0)',
+		entries: [
+			{ term: 'Exaustão', def: 'Estado aplicado quando os PM chegam a <strong>zero</strong>. Role <strong>1d6</strong> para determinar o efeito — ele dura até o personagem recuperar ao menos 1 PM (exceto resultado 6).' },
+			{ term: 'Mãos Trêmulas', abbr: 'Exaustão 1', def: 'Falha automática em qualquer feitiço que exigiria <strong>Sucesso Extremo ou Difícil</strong>; apenas Sucesso Regular permanece possível.' },
+			{ term: 'Mente Embotada', abbr: 'Exaustão 2', def: '<strong>Desvantagem</strong> em todos os testes de Magia de Combate, Encantamento, Conjuração e Transfiguração.' },
+			{ term: 'Vulnerabilidade Mágica', abbr: 'Exaustão 3', def: '<strong>Postura Máxima reduzida à metade</strong> enquanto durar a Exaustão. Não afeta a Postura atual, apenas o teto máximo.' },
+			{ term: 'Tremor Nervoso', abbr: 'Exaustão 4', def: '<strong>Desvantagem</strong> em Esquiva e Defesa Mágica — o corpo não responde mais com a mesma firmeza.' },
+			{ term: 'Sangue de Reserva', abbr: 'Exaustão 5', def: 'Ainda é possível conjurar, mas cada feitiço além do PM 0 custa <strong>1d4 de Dano direto no HP</strong>.' },
+			{ term: 'Colapso', abbr: 'Exaustão 6', def: 'O personagem <strong>desmaia</strong> ao fim do turno em que zerou os PM, ficando Vulnerável até ser socorrido ou descansar. Recomendado para PdMs e cenas de alto risco; o Mestre pode permitir reroll para jogadores.' },
+		],
+	},
+	{
+		key: 'pericias',
+		icon: '📚',
+		title: 'Perícias — Para que serve cada uma',
+		entries: [
+			{ term: 'Arremessar', abbr: '20%', def: 'Lançar objetos físicos com precisão — pedras, frascos de poção, itens de campo. Usada em Impacto Ambiental e ataques improvisados à distância.' },
+			{ term: 'Atletismo / Pular', abbr: '20%', def: 'Correr, saltar obstáculos, escalar superfícies, nadar contra correnteza. Representa a capacidade física geral em situações de combate móvel ou fuga.' },
+			{ term: 'Conjuração', abbr: '05%', def: 'Fazer aparecer, desaparecer ou transportar objetos e criaturas. Usada principalmente em Ações de Cenário.' },
+			{ term: 'Defesa Mágica', abbr: '20%', def: 'Perícia principal de <strong>reação defensiva</strong> — rola-se para bloquear ataques. O nível de sucesso determina a eficácia do bloqueio conforme o estado da Postura.' },
+			{ term: 'Encantamento', abbr: '20%', def: 'Lançar encantamentos que alteram o comportamento de objetos ou criaturas. Muito usada em Ações de Cenário.' },
+			{ term: 'Esquiva', abbr: 'Metade DES', def: 'Desviar fisicamente de um ataque. Em caso de sucesso, evita totalmente o dano — mas o personagem cai no chão, impondo <strong>Desvantagem</strong> no próximo ataque. Atacar com sucesso em seguida recupera 1d4 de Postura.' },
+			{ term: 'Furtividade', abbr: '20%', def: 'Mover-se sem ser notado, infiltrar locais vigiados e aproximar-se de alvos sem alertá-los. Base de operações de vigilância e emboscada.' },
+			{ term: 'Luta Corporal', abbr: '15%', def: 'Combate físico sem magia — socos, agarrões, chutes e técnicas marciais. Substitui Magia de Combate quando no modo Corporal. Exige adjacência ao alvo.' },
+			{ term: 'Magia das Trevas', abbr: '01%', def: 'Magias proibidas ou moralmente questionáveis. Uso excessivo acarreta consequências narrativas sérias.' },
+			{ term: 'Magia de Combate', abbr: '20%', def: 'Perícia central para <strong>atacar com feitiços</strong> — tanto de Dano quanto de Efeito. É contra esse valor que o d100 é testado em toda ação ofensiva com magia. Rank B no Medidor de Estilo concede +5%.' },
+			{ term: 'Natação', abbr: '20%', def: 'Nadar com eficiência em ambientes aquáticos ou sobreviver a situações de afogamento e correntes mágicas. Periférica mas vital em cenas de campo aberto.' },
+			{ term: 'Transfiguração', abbr: '05%', def: 'Transformar a forma de objetos, criaturas ou partes do ambiente. Usada principalmente em Ações de Cenário para remodelar o campo de batalha e criar coberturas ou obstáculos.' },
+			{ term: 'Voo Arcano', abbr: '10%', def: 'Pilotar meios de voo arcano em alta velocidade e manobras táticas. Essencial para combate aéreo.' },
+			{ term: 'Alquimia', abbr: '01%', def: 'Criação e manipulação de substâncias mágicas avançadas, além de poções complexas. Diferente de Poções — é a ciência arcana por trás da transmutação de materiais.' },
+			{ term: 'Antiguidades Mágicas', abbr: '05%', def: 'Identificar e analisar artefatos, relíquias e objetos mágicos antigos. Útil para determinar a origem, poder e maldições de itens recuperados em campo.' },
+			{ term: 'Aritmancia', abbr: '01%', def: 'Uso de números e equações mágicas para prever eventos, decodificar runas numéricas e analisar padrões arcanos.' },
+			{ term: 'Arqueologia / Geologia', abbr: '01%', def: 'Escavar, identificar e datar locais mágicos, ruínas e sítios históricos. Útil para investigações de longa data.' },
+			{ term: 'Curandeirismo', abbr: '10%', def: 'Tratar ferimentos, maldições e envenenamentos mágicos em campo. Base para cenas de socorro e recuperação de HP.' },
+			{ term: 'Estudo dos Não-mágicos', abbr: '10%', def: 'Conhecimento sobre o mundo não-mágico: tecnologia, cultura, leis e costumes. Essencial para agentes infiltrados e operações fora da comunidade arcana.' },
+			{ term: 'Herbologia', abbr: '10%', def: 'Identificar e usar plantas mágicas — tanto medicinais quanto ofensivas. Base para quem trabalha em ambientes naturais.' },
+			{ term: 'História da Magia', abbr: '05%', def: 'Conhecimento sobre eventos históricos do mundo mágico, guerras, famílias ilustres e facções. Útil para identificar motivações de vilões.' },
+			{ term: 'Leis do Conselho', abbr: '05%', def: 'Conhecimento da legislação mágica do Conselho Arcano — controle de magias, direitos de criaturas. Essencial para agentes que trabalham dentro da burocracia.' },
+			{ term: 'Poções', abbr: '10%', def: 'Preparar e identificar poções. Diferente de Alquimia — é o conhecimento prático de receitas e ingredientes. Usado para criar itens consumíveis ou identificar venenos em campo.' },
+			{ term: 'Teoria da Magia / Runas', abbr: '01%', def: 'Compreender os fundamentos teóricos da magia e ler runas antigas. Usada para analisar feitiços desconhecidos e quebrar encantamentos complexos.' },
+			{ term: 'Trato de Criaturas', abbr: 'Trato de Criaturas Mágicas · 10%', def: 'Interagir, domesticar e cuidar de criaturas mágicas. Permite comunicação básica com certas espécies e evita ataques em ambientes com criaturas selvagens. É a perícia exigida para comandar criaturas em Ações de Cenário (veja Uso de Criaturas Mágicas).' },
+			{ term: 'Usar Biblioteca', abbr: '20%', def: 'Pesquisar informações em acervos mágicos e não-mágicos — arquivos do Conselho, bibliotecas restritas, registros históricos. Base da investigação intelectual.' },
+			{ term: 'Arte / Criação', abbr: '05%', def: 'Criatividade artística — pintura, escultura, música, escrita. Usada em contextos sociais, disfarces culturais ou para criar artefatos decorativos com propriedades ocultas.' },
+			{ term: 'Charme', abbr: '15%', def: 'Persuadir e seduzir pela simpatia e presença pessoal. Diferente de Lábia (engano) — é influência genuína pelo carisma.' },
+			{ term: 'Disfarce', abbr: '05%', def: 'Assumir a identidade de outra pessoa — maquiagem, alteração de voz, disfarces mágicos. Usada em infiltrações e operações encobertas.' },
+			{ term: 'Esconder', abbr: '10%', def: 'Ocultar objetos, itens ou até a si mesmo usando magia ou habilidade física. Diferente de Furtividade (movimento) — é sobre ficar estático e imperceptível.' },
+			{ term: 'Escutar', abbr: '20%', def: 'Detectar sons relevantes — conversas distantes, passos furtivos, feitiços sendo preparados. Complementa Percepção Arcana em situações onde o visual é limitado.' },
+			{ term: 'Intimidação', abbr: '15%', def: 'Forçar cooperação ou recuo através de ameaça, presença física ou demonstração de poder. Usada em interrogatórios, confrontos verbais e situações de pressão.' },
+			{ term: 'Lábia', abbr: '05%', def: 'Enganar, mentir e manipular com palavras. Diferente de Charme (simpatia) — é influência por desonestidade.' },
+			{ term: 'Línguas Mágicas', abbr: '01%', def: 'Compreender e falar idiomas mágicos raros. Útil para negociações com criaturas e leitura de textos arcanos antigos.' },
+			{ term: 'Percepção Arcana', abbr: '25%', def: 'Notar detalhes do ambiente — objetos ocultos, armadilhas, pessoas disfarçadas, rastros mágicos. A mais alta perícia base do sistema.' },
+			{ term: 'Prestidigitação', abbr: '10%', def: 'Manipulação manual ágil — truques de mão, plantar evidências ou recuperar objetos sem ser percebido.' },
+			{ term: 'Psicologia', abbr: '10%', def: 'Ler as intenções, emoções e mentiras de outras pessoas. Detectar quando estão sendo enganados, avaliar motivações e perfis psicológicos.' },
+			{ term: 'Rastreamento Mágico', abbr: '10%', def: 'Seguir rastros físicos e mágicos — resíduos de feitiços, marcas de Translocação, trilhas de criaturas. Essencial para operações de busca e captura.' },
+			{ term: 'Sobrevivência', abbr: '10%', def: 'Sobreviver em ambientes hostis — construir abrigo, encontrar alimento, navegar sem mapas, resistir a condições extremas.' },
+		],
+	},
+	{
+		key: 'universo',
+		icon: '🔮',
+		title: 'Termos do Mundo',
+		entries: [
+			{ term: 'Agente', def: 'Personagem operacional vinculado ao Conselho Arcano, treinado para investigação e combate mágico em campo.' },
+			{ term: 'Conselho Arcano', def: 'Autoridade central que rege o mundo mágico, suas leis, patentes e o Departamento de Investigações Arcanas.' },
+			{ term: 'Departamento de Investigações Arcanas', def: 'Órgão do Conselho Arcano responsável pelos Agentes — define patentes, acesso a equipamento e missões.' },
+			{ term: 'Não-mágico', def: 'Pessoa sem poderes mágicos. A perícia <strong>Estudo dos Não-mágicos</strong> representa o conhecimento sobre esse mundo, essencial para agentes infiltrados.' },
+			{ term: 'Artes das Trevas', abbr: 'Magia das Trevas', def: 'Ramo de magia proibida ou moralmente questionável. Representado pela perícia <strong>Magia das Trevas</strong> (base 01%). Uso excessivo tem consequências narrativas.' },
+			{ term: 'PdM', abbr: 'Personagem do Mestre', def: 'Personagem controlado pelo Mestre (não-jogador). Mencionado especialmente na regra de <strong>Exaustão</strong>: o resultado 6 (Colapso) é recomendado principalmente para PdMs e cenas de alto risco.' },
+		],
+	},
+];
 ---
 
-<AuthGatedPage
-	active="glossario"
-	title="Glossário · Wyrdcall"
-	eyebrow="Sistema"
-	heading="Glossário"
-	description="Em construção — em breve você poderá consultar termos e conceitos da campanha aqui."
-	icon="📜"
-	emptyText="Nenhum termo disponível ainda."
-	requireAuth={false}
-/>
+<Layout title="Glossário · Wyrdcall">
+	<InternalHeader active="glossario" redirectIfLoggedOut={false} />
+
+	<main class="relative mx-auto flex max-w-7xl flex-col gap-10 px-4 py-16">
+		<div class="flex flex-col gap-2">
+			<p class="text-xs uppercase tracking-[0.3em] text-muted-foreground">Sistema d100 — Todos os termos, siglas e mecânicas</p>
+			<h1 class="font-display text-3xl font-bold text-foreground">Glossário de Termos &amp; Siglas</h1>
+		</div>
+
+		<div class="sticky top-4 z-10">
+			<input
+				id="glossario-search"
+				type="text"
+				placeholder="🔎 Buscar termo ou sigla..."
+				class="w-full rounded-lg border border-border bg-card/90 px-4 py-2.5 text-sm text-foreground shadow-[0_1px_0_rgba(255,255,255,0.04)_inset,0_8px_24px_-12px_rgba(0,0,0,0.6)] backdrop-blur placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+			/>
+		</div>
+
+		<p id="glossario-empty" class="hidden text-sm text-muted-foreground">Nenhum termo encontrado.</p>
+
+		<div id="glossario-content" class="flex flex-col gap-10">
+			{
+				categories.map((cat) => (
+					<section class="glossario-category flex flex-col gap-4" data-cat={cat.key}>
+						<h2 class="flex items-center gap-2 font-display text-xl font-semibold text-foreground">
+							<span class="icon-badge text-base">{cat.icon}</span>
+							{cat.title}
+						</h2>
+						<div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+							{
+								cat.entries.map((entry) => (
+									<div
+										class="glossario-entry panel flex flex-col gap-1.5 p-4"
+										data-search={`${entry.term} ${entry.abbr ?? ''} ${entry.def}`.toLowerCase()}
+									>
+										<div class="flex flex-wrap items-baseline gap-2">
+											<strong class="font-display text-sm text-primary">{entry.term}</strong>
+											{entry.abbr && <span class="text-xs text-muted-foreground">{entry.abbr}</span>}
+										</div>
+										<p class="text-sm leading-relaxed text-muted-foreground" set:html={entry.def} />
+									</div>
+								))
+							}
+						</div>
+					</section>
+				))
+			}
+		</div>
+	</main>
+</Layout>
+
+<script>
+	const input = document.getElementById('glossario-search') as HTMLInputElement | null;
+	const empty = document.getElementById('glossario-empty');
+	const categoryEls = Array.from(document.querySelectorAll<HTMLElement>('.glossario-category'));
+
+	function filtrarGlossario(query: string) {
+		const q = query.trim().toLowerCase();
+		let anyVisible = false;
+
+		for (const cat of categoryEls) {
+			let catHasVisible = false;
+			const entries = cat.querySelectorAll<HTMLElement>('.glossario-entry');
+			for (const entry of entries) {
+				const match = !q || (entry.dataset.search ?? '').includes(q);
+				entry.classList.toggle('hidden', !match);
+				if (match) catHasVisible = true;
+			}
+			cat.classList.toggle('hidden', !catHasVisible);
+			if (catHasVisible) anyVisible = true;
+		}
+
+		empty?.classList.toggle('hidden', anyVisible);
+	}
+
+	input?.addEventListener('input', () => filtrarGlossario(input.value));
+</script>
