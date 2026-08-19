@@ -1,0 +1,115 @@
+---
+interface NavItem {
+	href: string;
+	label: string;
+}
+
+interface Props {
+	active: 'ficha' | 'campanha' | 'combate' | 'criacao' | 'glossario' | 'itens';
+}
+
+const { active } = Astro.props;
+
+const navItems: Array<NavItem & { key: Props['active'] }> = [
+	{ key: 'ficha', href: '/personagens', label: 'Ficha' },
+	{ key: 'campanha', href: '/campanha', label: 'Campanha' },
+	{ key: 'combate', href: '/regras-de-combate', label: 'Regras de Combate' },
+	{ key: 'criacao', href: '/regras-de-criacao', label: 'Regras de Criação' },
+	{ key: 'glossario', href: '/glossario', label: 'Glossário' },
+	{ key: 'itens', href: '/itens', label: 'Itens' },
+];
+---
+
+<header class="relative flex items-center justify-between gap-4 border-b border-border bg-background/80 px-4 py-3 backdrop-blur sm:px-6">
+	<a href="/" class="flex shrink-0 items-center gap-2">
+		<span class="text-primary">⚡</span>
+		<span class="font-display text-sm font-bold tracking-widest text-primary">WYRDCALL</span>
+	</a>
+
+	<nav class="flex flex-1 items-center gap-1 overflow-x-auto overflow-y-hidden text-sm">
+		{
+			navItems.map((item) => (
+				<a
+					href={item.href}
+					class={`relative whitespace-nowrap px-3 py-2 font-medium transition ${
+						item.key === active
+							? 'text-primary after:absolute after:inset-x-3 after:-bottom-px after:h-0.5 after:rounded-full after:bg-primary after:content-[""]'
+							: 'text-muted-foreground hover:text-foreground'
+					}`}
+				>
+					{item.label}
+				</a>
+			))
+		}
+	</nav>
+
+	<div class="flex shrink-0 items-center gap-2">
+		<div class="flex items-center gap-2 rounded-lg border border-border bg-background px-2 py-1.5">
+			<div
+				id="user-avatar"
+				class="flex h-6 w-6 items-center justify-center overflow-hidden rounded-full bg-primary/20 text-xs font-bold text-primary"
+			>
+				<span id="user-avatar-fallback">?</span>
+				<img id="user-avatar-img" class="hidden h-full w-full object-cover" alt="" />
+			</div>
+			<span id="user-name" class="max-w-[10rem] truncate text-sm text-foreground">Carregando…</span>
+		</div>
+
+		<a
+			href="/perfil"
+			class="rounded-lg border border-border bg-background px-2.5 py-1.5 text-sm transition hover:bg-muted"
+		>
+			Perfil
+		</a>
+
+		<button
+			id="sign-out"
+			type="button"
+			class="rounded-lg border border-border bg-background px-2.5 py-1.5 text-sm transition hover:bg-muted"
+		>
+			Sair
+		</button>
+	</div>
+</header>
+
+<script>
+	import { supabase } from '../lib/supabase';
+
+	const { data } = await supabase.auth.getSession();
+	const user = data.session?.user;
+
+	if (!user) {
+		window.location.href = '/';
+	} else {
+		const displayName =
+			(user.user_metadata?.display_name as string | undefined) ||
+			(user.user_metadata?.full_name as string | undefined) ||
+			user.email ||
+			'Usuário';
+		const avatarUrl = user.user_metadata?.avatar_url as string | undefined;
+
+		const nameEl = document.getElementById('user-name');
+		if (nameEl) nameEl.textContent = displayName;
+
+		const fallbackEl = document.getElementById('user-avatar-fallback');
+		if (fallbackEl) fallbackEl.textContent = displayName.trim().charAt(0).toUpperCase() || '?';
+
+		const imgEl = document.getElementById('user-avatar-img') as HTMLImageElement | null;
+		if (avatarUrl && imgEl) {
+			imgEl.src = avatarUrl;
+			imgEl.addEventListener('load', () => {
+				imgEl.classList.remove('hidden');
+				fallbackEl?.classList.add('hidden');
+			});
+			imgEl.addEventListener('error', () => {
+				imgEl.classList.add('hidden');
+				fallbackEl?.classList.remove('hidden');
+			});
+		}
+	}
+
+	document.getElementById('sign-out')?.addEventListener('click', async () => {
+		await supabase.auth.signOut();
+		window.location.href = '/';
+	});
+</script>
