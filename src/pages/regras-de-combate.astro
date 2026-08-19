@@ -1,14 +1,645 @@
 ---
-import AuthGatedPage from '../components/AuthGatedPage.astro';
+import Layout from '../layouts/Layout.astro';
+import InternalHeader from '../components/InternalHeader.astro';
+
+interface QuickAction {
+	icon: string;
+	title: string;
+	body: string;
+}
+
+const quickActions: QuickAction[] = [
+	{
+		icon: '🏃',
+		title: 'Movimento',
+		body: 'Andar até 6 quadrados ou Translocar (3 PM): teleporta 12 quadrados, anula toda Ação de Cenário congelada contra você e ainda deixa a Ação de Combate livre para atacar.',
+	},
+	{
+		icon: '⚔',
+		title: 'Combate',
+		body: 'Atacar (Dano ou Efeito) • Focar (recupera ¼ da Postura Máx.) • Usar item • Dash: abre mão de atacar para andar o dobro (12 quadrados) sem gastar PM, mas não teleporta e não anula nada.',
+	},
+	{
+		icon: '🎯',
+		title: 'Cenário',
+		body: 'Manipula o ambiente (mágico ou físico) escolhendo um dos 5 tipos de Ação de Cenário abaixo.',
+	},
+];
+
+interface CenarioTipo {
+	tipo: string;
+	efeito: string;
+	congela: string;
+}
+
+const cenarioTipos: CenarioTipo[] = [
+	{ tipo: 'Restrição', efeito: 'Prende o alvo, impede o movimento dele.', congela: 'Alvo reagir' },
+	{
+		tipo: 'Criar Barreira',
+		efeito: 'Cobertura para você/aliado — Desvantagem para inimigos te acertarem, já a partir do próximo ataque.',
+		congela: 'Não congela (vale na hora)',
+	},
+	{
+		tipo: 'Afetar Sentidos',
+		efeito: 'Ofusca/ensurdece/distrai — Desvantagem na próxima Defesa do alvo.',
+		congela: 'Alvo reagir',
+	},
+	{ tipo: 'Impacto Ambiental', efeito: 'Arremesso de objetos — 1d4 de Dano de Postura direto.', congela: 'Alvo reagir' },
+	{
+		tipo: 'Manipulação',
+		efeito: 'Desarma/rouba item (com alvo) ou mexe no cenário sem mirar ninguém (porta, alavanca).',
+		congela: 'Com alvo: alvo reagir. Sem alvo: seu próprio próximo turno',
+	},
+];
+
+interface Nivel {
+	nome: string;
+	condicao: string;
+	exemplo: string;
+	tone: string;
+}
+
+const sucessos: Nivel[] = [
+	{ nome: 'Regular', condicao: 'Resultado ≤ valor da perícia', exemplo: 'Rolar 31–60', tone: 'text-primary' },
+	{ nome: 'Difícil', condicao: 'Resultado ≤ metade da perícia', exemplo: 'Rolar 13–30', tone: 'text-gold' },
+	{ nome: 'Extremo', condicao: 'Resultado ≤ um quinto da perícia', exemplo: 'Rolar 02–12', tone: 'text-sky-400' },
+	{ nome: 'Crítico', condicao: 'Resultado = 01', exemplo: 'Rolar 01 (sempre)', tone: 'text-rose-400' },
+];
+
+const falhas: Nivel[] = [
+	{ nome: 'Falha', condicao: 'Resultado > valor da perícia', exemplo: 'Rolar 61–99', tone: 'text-muted-foreground' },
+	{ nome: 'Falha Crítica', condicao: 'Resultado = 100', exemplo: 'Rolar 100', tone: 'text-rose-400' },
+];
+
+interface GeralCard {
+	title: string;
+	items: string[];
+}
+
+const geralColuna1: GeralCard[] = [
+	{
+		title: '1. Dinâmica de Ataque, Dano e Combos',
+		items: [
+			'Feitiços de Efeito (Controle): objetivo é quebrar a guarda. Se bloqueados, reduzem 1d6 de Postura. Se acertarem direto, reduzem 2d6 — mas o efeito de controle só entra se esse dano zerar a Postura do alvo.',
+			'Feitiços de Dano (Ofensivos): causam 1d6 de Dano na Vida (HP), seguindo a Regra de Colisão. Alvo Vulnerável (Postura 0) recebe +1d6 extra. Tomar dano NÃO zera a Postura.',
+			'Melhoria de Assinatura (Efeito/Dano): +1d4 de redução de Postura ou +1d4 de Dano em HP.',
+			'Melhoria de Assinatura (Área sem Custo): o feitiço de Assinatura afeta 2 alvos sem gastar PM. A partir do 3º alvo, volta a valer o Overcast normal.',
+			'Sistema de Combos: repetir o mesmo feitiço já usado no duelo gera Desvantagem. Variar cria bônus de estilo.',
+			'Ataque Duplo: dois feitiços diferentes na mesma Ação de Combate, cada um com Desvantagem (acumulável com outras).',
+		],
+	},
+	{
+		title: '2. Reações Defensivas (O Alvo)',
+		items: [
+			'Bloqueio: contra Efeitos, empate de nível de sucesso já basta (consome 1d6 de Postura; falha custa 2d6). Contra Dano, segue a Regra de Colisão e recupera 1d4 de Postura se bem-sucedido.',
+			'Esquiva: evita totalmente o feitiço, mas cair no chão impõe Desvantagem no próximo ataque seu.',
+			'Translocação (3 PM): evita automático, teleporta 12 quadrados. Surgir no flanco/costas garante +1 nível no Medidor de Estilo.',
+		],
+	},
+	{
+		title: '3. Movimentação e Grid (Sniping)',
+		items: [
+			'Deslocamento base: 6 quadrados (9m) por turno.',
+			'Curto (1–6 sq): sem penalidade. Médio (7–12 sq): 1 Desvantagem. Longo (13–18 sq): 2 Desvantagens, e assim por diante.',
+			'Assinatura Melhorada: "Dobrar Alcance Base" anula 1 nível de penalidade passivamente.',
+			'Dash (Ação de Combate): anda o dobro (12 quadrados) sem gastar PM, mas não ataca, não teleporta e não anula nada.',
+			'Translocação como Ação de Movimento: teleporta 12 quadrados e ainda ataca no mesmo turno, anulando qualquer Ação de Cenário congelada contra você. Custa 3 PM.',
+		],
+	},
+	{
+		title: '4. Overcast (Gasto de PM para Ampliar o Feitiço)',
+		items: [
+			'Aumentar Distância: reduz a penalidade de distância em 1 nível.',
+			'Aumentar Dano: +1d4 extra na Vida (HP) ou na Postura, conforme o tipo do feitiço.',
+			'Afetar em Área: habilita o feitiço a atingir múltiplos alvos.',
+			'Anular Desvantagem: anula 1 Desvantagem em qualquer rolagem, podendo ser usado várias vezes na mesma rolagem.',
+		],
+	},
+];
+
+const geralColuna2: GeralCard[] = [
+	{
+		title: '5. Feitiços em Área',
+		items: [
+			'Custo: 1 PM para cada alvo extra além do primeiro.',
+			'Rolagem: independente para cada alvo, com seus próprios níveis de sucesso e Colisão.',
+			'Exemplo: afetar 3 alvos custa 2 PM e exige 3 rolagens de ataque separadas.',
+		],
+	},
+	{
+		title: '6. Recuperando a Postura',
+		items: [
+			'Bloqueio Oportuno: bloquear com sucesso um Feitiço de Dano recupera 1d4 de Postura.',
+			'Ação de Foco: gastar a Ação de Combate para focar recupera um quarto da Postura Máxima.',
+			'Ataque após Esquiva: atacar com desvantagem por estar no chão e acertar recupera 1d4 de Postura.',
+		],
+	},
+	{
+		title: '7. Pontos de Magia (PM) e Sorte',
+		items: [
+			'Feitiços de combate e cenário não gastam PM passivamente.',
+			'Translocação: gasta 3 PM (reação ou Ação de Movimento).',
+			'Overcast: gasta 1 PM por benefício escolhido.',
+			'Esgotamento: PM a 0 deixa o bruxo Exausto.',
+			'Sorte: queime pontos de Sorte para subir um nível de sucesso (1 ponto por nível, sem pular níveis). Não funciona em Falha Crítica.',
+		],
+	},
+];
+
+interface Exaustao {
+	d6: string;
+	nome: string;
+	efeito: string;
+}
+
+const exaustao: Exaustao[] = [
+	{ d6: '1', nome: 'Mãos Trêmulas', efeito: 'Falha automática em feitiços com Sucesso Extremo ou Difícil exigido; só Regular permanece possível.' },
+	{ d6: '2', nome: 'Mente Embotada', efeito: 'Desvantagem em Magia de Combate, Encantamento, Conjuração e Transfiguração.' },
+	{ d6: '3', nome: 'Vulnerabilidade Mágica', efeito: 'Postura Máxima reduzida à metade enquanto durar (não afeta a Postura atual).' },
+	{ d6: '4', nome: 'Tremor Nervoso', efeito: 'Desvantagem em Esquiva e Defesa/Escudo.' },
+	{ d6: '5', nome: 'Sangue de Reserva', efeito: 'Cada feitiço além do PM 0 custa 1d4 de Dano direto na Vida (HP).' },
+	{ d6: '6', nome: 'Colapso', efeito: 'O bruxo desmaia ao fim do turno, ficando Vulnerável até ser socorrido ou descansar.' },
+];
+
+interface CuraResultado {
+	nivel: string;
+	efeito: string;
+}
+
+const curaCombate: CuraResultado[] = [
+	{ nivel: 'Sucesso Regular', efeito: 'Recupera 1d4 de HP no alvo.' },
+	{ nivel: 'Sucesso Difícil', efeito: 'Recupera 1d6 de HP no alvo.' },
+	{ nivel: 'Sucesso Extremo', efeito: 'Recupera 1d8 de HP no alvo.' },
+	{ nivel: 'Crítico', efeito: 'Recupera HP máximo e o alvo ganha +1 Nível no Medidor de Estilo.' },
+	{ nivel: 'Falha', efeito: 'A cura falha, a ação é perdida e o Curandeiro gasta 1 PM. Sem efeito no alvo.' },
+	{ nivel: 'Falha Crítica', efeito: 'Além de gastar 1 PM, o Curandeiro sofre 1d4 de Dano de Postura.' },
+];
+
+const curaForaDeCombate: CuraResultado[] = [
+	{ nivel: 'Sucesso Regular', efeito: 'Recupera 1d4 de HP no alvo.' },
+	{ nivel: 'Sucesso Difícil', efeito: 'Recupera 1d6 de HP no alvo.' },
+	{ nivel: 'Sucesso Extremo', efeito: 'Recupera 1d8 de HP e também cura 1d4 de Dano na Vida (HP).' },
+	{ nivel: 'Crítico', efeito: 'Recupera completamente a HP Máxima do alvo. Bem-estar por algumas horas (vantagem narrativa).' },
+	{ nivel: 'Falha', efeito: 'A tentativa falha sem consequência. Pode tentar novamente na próxima cena.' },
+	{ nivel: 'Falha Crítica', efeito: 'A tentativa falha e ambos Usuário e Alvo perdem 1 PM.' },
+];
+
+const ranks = [
+	{ label: 'D', color: '#94a3b8' },
+	{ label: 'C', color: '#6ee7b7' },
+	{ label: 'B', color: '#34d399' },
+	{ label: 'A', color: '#38bdf8' },
+	{ label: 'S', color: '#f2b84b' },
+	{ label: 'SS', color: '#fb923c' },
+	{ label: 'SSS', color: '#fb7185' },
+];
+
+const beneficios = [
+	{ rank: 'B', color: '#34d399', desc: '+5% em Magia de Combate.' },
+	{ rank: 'A', color: '#38bdf8', desc: '+1 dado de dano de Postura.' },
+	{ rank: 'S', color: '#f2b84b', desc: 'Recupera 1 PM ao acertar.' },
+	{ rank: 'SS', color: '#fb923c', desc: 'Crítico Ampliado: acertos críticos causam dano máximo.' },
+	{ rank: 'SSS', color: '#fb7185', desc: 'Pode rolar um dado novamente (1× por turno).' },
+];
 ---
 
-<AuthGatedPage
-	active="combate"
-	title="Regras de Combate · Wyrdcall"
-	eyebrow="Sistema"
-	heading="Regras de Combate"
-	description="Em construção — em breve você poderá consultar as mecânicas de combate aqui."
-	icon="⚔️"
-	emptyText="Nenhuma regra disponível ainda."
-	requireAuth={false}
-/>
+<Layout title="Regras de Combate · Wyrdcall">
+	<InternalHeader active="combate" redirectIfLoggedOut={false} />
+
+	<main class="relative mx-auto flex max-w-7xl flex-col gap-14 px-4 py-16">
+		<div class="flex flex-col gap-2">
+			<p class="text-xs uppercase tracking-[0.3em] text-muted-foreground">Sistema d100 — Combate Tático de Agentes</p>
+			<h1 class="font-display text-3xl font-bold text-foreground">Guia Tático de Combate</h1>
+		</div>
+
+		<!-- COLINHA RÁPIDA -->
+		<section class="flex flex-col gap-4">
+			<h2 class="font-display text-xl font-semibold text-foreground">🃏 Ações do Turno — Referência Rápida</h2>
+
+			<div class="panel-accent panel-accent--gold">
+				<p class="text-sm leading-relaxed text-muted-foreground">
+					Todo turno você faz <strong class="text-foreground">as 3 ações abaixo ao mesmo tempo</strong> (não em
+					sequência escolhida — Movimento, Combate e Cenário sempre acontecem juntos, cada uma com sua própria
+					escolha de uso).
+				</p>
+			</div>
+
+			<div class="grid gap-4 sm:grid-cols-3">
+				{
+					quickActions.map((action) => (
+						<div class="panel flex flex-col gap-2 p-4">
+							<span class="icon-badge">{action.icon}</span>
+							<h3 class="font-display text-sm font-semibold text-foreground">{action.title}</h3>
+							<p class="text-xs text-muted-foreground">{action.body}</p>
+						</div>
+					))
+				}
+			</div>
+
+			<div class="panel p-5">
+				<h3 class="mb-3 font-display text-sm font-semibold text-foreground">Os 5 Tipos de Ação de Cenário</h3>
+				<div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5 lg:items-stretch">
+					{
+						cenarioTipos.map((c) => (
+							<div class="flex flex-col gap-2 rounded-lg border border-border bg-muted/30 p-3">
+								<strong class="text-sm text-foreground">{c.tipo}</strong>
+								<p class="flex-1 text-xs leading-relaxed text-muted-foreground">{c.efeito}</p>
+								<p class="border-t border-border/60 pt-1.5 text-[11px] leading-snug text-muted-foreground/80">
+									<span class="font-semibold text-muted-foreground">Congela:</span> {c.congela}
+								</p>
+							</div>
+						))
+					}
+				</div>
+			</div>
+
+			<div class="panel-accent panel-accent--gold">
+				<p class="text-sm leading-relaxed text-muted-foreground">
+					<strong class="text-foreground">Quando o alvo "reage" a uma Ação de Cenário congelada</strong>, ele
+					escolhe uma: sofrer o efeito, Translocar como Ação de Movimento (anula automático), ou gastar a
+					própria Ação de Cenário para contestar via <strong class="text-foreground">Embate Ambiental</strong> —
+					Anular (Sucesso igual), Reverter (Sucesso maior) ou Ignorar e Retaliar (novo efeito próprio).
+				</p>
+			</div>
+
+			<div class="panel p-5">
+				<h3 class="mb-2 font-display text-sm font-semibold text-foreground">Reagindo a um Ataque (quando você é o alvo)</h3>
+				<ul class="flex flex-col gap-2 text-sm text-muted-foreground">
+					<li><strong class="text-foreground">Bloqueio:</strong> Efeito → empate de sucesso já bloqueia (custa 1d6 Postura; falhar custa 2d6). Dano → segue Regra de Colisão; bloqueio bom recupera 1d4 de Postura.</li>
+					<li><strong class="text-foreground">Esquiva:</strong> Evita tudo, mas cai no chão (Desvantagem no próximo ataque seu).</li>
+					<li><strong class="text-foreground">Translocação (3 PM):</strong> Evita automático, teleporta 12 quadrados, some do lugar.</li>
+				</ul>
+			</div>
+		</section>
+
+		<!-- NÍVEIS DE SUCESSO -->
+		<section class="flex flex-col gap-4">
+			<h2 class="font-display text-xl font-semibold text-foreground">Níveis de Sucesso — Referência Rápida</h2>
+
+			<div class="panel-accent panel-accent--gold">
+				<h3 class="mb-2 font-display text-sm font-semibold text-amber-400">Como funciona o d100</h3>
+				<p class="text-sm leading-relaxed text-muted-foreground">
+					Role 1d100 e compare ao valor da perícia. Quanto <strong class="text-foreground">menor</strong> o
+					resultado, melhor o sucesso. O nível de sucesso determina o impacto da ação — especialmente em
+					confrontos onde o atacante e o defensor comparam seus resultados.
+				</p>
+			</div>
+
+			<div class="grid gap-4 lg:grid-cols-2">
+				<div class="panel p-5">
+					<p class="mb-3 text-xs font-semibold uppercase tracking-[0.07em] text-primary">✅ Sucessos</p>
+					<div class="flex flex-col gap-2">
+						{
+							sucessos.map((n) => (
+								<div class="flex flex-col gap-0.5 rounded-lg border border-border bg-muted/30 p-3">
+									<div class="flex items-center justify-between gap-2">
+										<strong class={`font-display text-sm ${n.tone}`}>{n.nome}</strong>
+										<span class="text-[11px] text-muted-foreground">{n.exemplo}</span>
+									</div>
+									<p class="text-xs text-muted-foreground">{n.condicao}</p>
+								</div>
+							))
+						}
+					</div>
+				</div>
+
+				<div class="panel p-5">
+					<p class="mb-3 text-xs font-semibold uppercase tracking-[0.07em] text-rose-400">❌ Falhas</p>
+					<div class="flex flex-col gap-2">
+						{
+							falhas.map((n) => (
+								<div class="flex flex-col gap-0.5 rounded-lg border border-border bg-muted/30 p-3">
+									<div class="flex items-center justify-between gap-2">
+										<strong class={`font-display text-sm ${n.tone}`}>{n.nome}</strong>
+										<span class="text-[11px] text-muted-foreground">{n.exemplo}</span>
+									</div>
+									<p class="text-xs text-muted-foreground">{n.condicao}</p>
+								</div>
+							))
+						}
+					</div>
+
+					<div class="mt-3 rounded-lg border border-rose-500/30 bg-rose-500/10 p-3 text-xs text-foreground">
+						<strong>Falha Crítica em combate:</strong> além de falhar, o personagem sofre uma consequência
+						severa a critério do Mestre. <strong>Sorte não pode ser usada</strong> para evitar ou reduzir
+						uma Falha Crítica — o resultado 100 é sempre 100, sem exceção.
+					</div>
+
+					<p class="mt-3 text-xs leading-relaxed text-muted-foreground">
+						<strong class="text-foreground">Vantagem:</strong> role 2d100 e use o menor resultado.<br />
+						<strong class="text-foreground">Desvantagem:</strong> role 2d100 e use o maior resultado.
+					</p>
+				</div>
+			</div>
+
+			<div class="panel border-l-4 border-l-amber-500 p-4 text-sm text-muted-foreground">
+				<strong class="text-foreground">Comparação de níveis (confrontos):</strong> quando dois personagens se
+				opõem diretamente, vence quem atingiu o nível de sucesso mais alto. Em empate, vence o defensor.
+				Lembre-se: Extremo &gt; Difícil &gt; Regular &gt; Falha.
+			</div>
+		</section>
+
+		<!-- REGRA DE COLISÃO -->
+		<section class="flex flex-col gap-4">
+			<h2 class="font-display text-xl font-semibold text-foreground">A Regra de Colisão</h2>
+
+			<div class="panel-accent panel-accent--rose">
+				<h3 class="mb-2 font-display text-sm font-semibold text-rose-400">Feitiços de Dano vs Postura</h3>
+				<p class="mb-3 text-sm text-muted-foreground">
+					O seu estado de Postura atual dita como sua Defesa reage aos <strong class="text-foreground">Feitiços de Dano</strong>
+					adversários. Esta regra se aplica exclusivamente a Feitiços de Dano — Feitiços de Efeito seguem regra própria abaixo.
+				</p>
+				<ul class="flex flex-col gap-2 text-sm text-muted-foreground">
+					<li><strong class="text-foreground">Postura Saudável (acima da metade):</strong> Guarda firme. Qualquer Sucesso na Defesa bloqueia feitiços de dano, sofrendo apenas dano na postura.</li>
+					<li><strong class="text-foreground">Postura Cansada (metade ou menos):</strong> Para bloquear sem sofrer dano em HP, seu Sucesso na Defesa deve ser igual ou maior ao do Ataque inimigo.</li>
+					<li><strong class="text-foreground">Postura Desgastada (¼ ou menos):</strong> Para bloquear, seu Sucesso na Defesa deve ser maior ao do Ataque inimigo.</li>
+					<li><strong class="text-foreground">Postura Quebrada (Zero):</strong> Vulnerável — não é possível bloquear ou esquivar. Ataques acertam automaticamente e causam +1d6 extra de dano.</li>
+				</ul>
+			</div>
+
+			<div class="panel border-l-4 border-l-amber-500 p-5">
+				<h3 class="mb-2 font-display text-sm font-semibold text-amber-400">Feitiços de Efeito (Controle) vs Postura — Regra Separada</h3>
+				<p class="mb-3 text-sm text-muted-foreground">
+					Feitiços de Efeito <strong class="text-foreground">não seguem a Regra de Colisão</strong>. O estado
+					da Postura não altera a dificuldade de bloqueio.
+				</p>
+				<ul class="flex flex-col gap-2 text-sm text-muted-foreground">
+					<li><strong class="text-foreground">Para bloquear:</strong> basta um empate de nível de sucesso — qualquer Sucesso na Defesa é suficiente, mesmo em Postura baixa.</li>
+					<li><strong class="text-foreground">Bloqueio bem-sucedido:</strong> o efeito é neutralizado, mas consome 1d6 de Postura de qualquer forma.</li>
+					<li><strong class="text-foreground">Bloqueio falho:</strong> o feitiço causa 2d6 de dano de Postura.</li>
+					<li><strong class="text-foreground">Postura Quebrada (Zero):</strong> sem exceção — Feitiços de Efeito também acertam automaticamente.</li>
+				</ul>
+				<div class="mt-3 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-foreground">
+					<strong>⚠ O efeito de controle só entra quando a Postura chega a Zero:</strong> acertar um Feitiço
+					de Efeito causa os 2d6 de dano de Postura acima, mas isso não significa que o controle (congelar,
+					atordoar, imobilizar etc.) já aconteceu. O efeito só se manifesta no instante em que aquele dano
+					zera a Postura do alvo. Se o alvo ainda tiver Postura sobrando, ele só perdeu Postura — continua
+					agindo normalmente.
+				</div>
+			</div>
+		</section>
+
+		<!-- ECONOMIA DE TURNO -->
+		<section class="flex flex-col gap-4">
+			<h2 class="font-display text-xl font-semibold text-foreground">Economia de Turno &amp; Ações de Cenário</h2>
+
+			<div class="panel p-5">
+				<h3 class="mb-2 font-display text-sm font-semibold text-foreground">3 Ações Simultâneas por Turno</h3>
+				<ul class="mb-4 flex flex-col gap-2 text-sm text-muted-foreground">
+					<li><strong class="text-foreground">Ação de Movimento:</strong> Deslocar-se pelo grid.</li>
+					<li><strong class="text-foreground">Ação de Combate:</strong> Atacar (Dano/Efeito), usar Foco, usar um item ou Dash.</li>
+					<li>
+						<strong class="text-foreground">Ação de Cenário (Suporte):</strong> Manipular o ambiente ou produzir um
+						efeito nele — com ou sem magia. Pode ser um feitiço ou algo puramente físico: abrir uma porta,
+						girar uma manivela, empurrar uma mesa para criar cobertura. O que importa é o efeito produzido, não
+						se veio de magia.
+					</li>
+				</ul>
+
+				<div class="mb-4 flex flex-col gap-2 rounded-lg border border-border bg-muted/20 p-4">
+					<p class="text-xs font-semibold uppercase tracking-[0.06em] text-gold">Timing — ações com alvo</p>
+					<p class="text-sm text-muted-foreground">
+						Restrição, Afetar os Sentidos, Impacto Ambiental e Manipulação (com alvo) miram alguém específico
+						e por isso ficam <em>congeladas</em> sobre o alvo até chegar a vez dele reagir. Aí ele escolhe:
+						sofrer o efeito, Translocar para anular automaticamente, ou gastar sua própria Ação de Cenário para
+						contestar via Embate Ambiental. Só depois disso o efeito se resolve.
+					</p>
+				</div>
+
+				<div class="mb-4 flex flex-col gap-2 rounded-lg border border-border bg-muted/20 p-4">
+					<p class="text-xs font-semibold uppercase tracking-[0.06em] text-gold">Timing — Manipulação sem alvo</p>
+					<p class="text-sm text-muted-foreground">
+						Quando a Ação de Cenário não mira ninguém (abrir uma porta, girar uma manivela), ela fica
+						congelada até o seu próprio próximo turno — qualquer outro personagem pode agir antes disso para
+						impedir o resultado. Se nada for feito, o efeito se resolve no início do seu próximo turno.
+					</p>
+				</div>
+
+				<div class="mb-4 flex flex-col gap-2 rounded-lg border border-border bg-muted/20 p-4">
+					<p class="text-xs font-semibold uppercase tracking-[0.06em] text-gold">Criar Barreira é a exceção</p>
+					<p class="text-sm text-muted-foreground">
+						Por proteger quem a criou (ou um aliado) em vez de mirar um inimigo, não há alvo para congelar o
+						efeito — a barreira já está de pé e vale contra qualquer ataque seguinte, até ser destruída via
+						Embate Ambiental.
+					</p>
+				</div>
+
+				<h3 class="mb-2 mt-2 font-display text-sm font-semibold text-foreground">Uso de Criaturas Mágicas em Ações de Cenário</h3>
+				<div class="rounded-lg border border-amber-500/20 bg-amber-500/5 p-4 text-sm text-muted-foreground">
+					<p class="mb-2"><strong class="text-foreground">Pré-requisito:</strong> Especialização em Naturalista Arcano ou perícia Trato de Criaturas Mágicas treinada.</p>
+					<p class="mb-2">
+						Em vez de lançar um feitiço, o personagem comanda uma criatura mágica sob seu controle para
+						executar a Ação de Cenário, usando <strong class="text-foreground">Trato de Criaturas Mágicas</strong>
+						no lugar da perícia mágica normalmente exigida.
+					</p>
+					<p class="mb-2 text-xs">
+						<strong class="text-foreground">Falha:</strong> sem custo adicional (a criatura age de forma
+						imprevisível). A criatura deve estar presente na cena e sob controle do personagem.
+					</p>
+					<p class="border-t border-amber-500/20 pt-2 text-xs">
+						<strong class="text-foreground">Vida &amp; Postura da Criatura:</strong> criaturas mágicas têm HP e
+						Postura próprios, definidos pelo Mestre conforme espécie, raridade e poder — podem ser alvejadas
+						e ficam incapacitadas se seus pontos se esgotarem.
+					</p>
+				</div>
+
+				<h3 class="mb-2 mt-4 font-display text-sm font-semibold text-foreground">O Embate Ambiental (Reagindo ao Cenário Inimigo)</h3>
+				<ul class="flex flex-col gap-2 text-sm text-muted-foreground">
+					<li><strong class="text-foreground">Anular / Destruir:</strong> exige Nível de Sucesso IGUAL ao do oponente.</li>
+					<li><strong class="text-foreground">Reverter (Ofensivo):</strong> exige Nível de Sucesso MAIOR. Toma o controle da magia inimiga e vira contra ele.</li>
+					<li><strong class="text-foreground">Ignorar e Retaliar:</strong> ignora a penalidade e cria um efeito totalmente novo em resposta.</li>
+				</ul>
+			</div>
+		</section>
+
+		<!-- REGRAS GERAIS -->
+		<section class="flex flex-col gap-4">
+			<h2 class="font-display text-xl font-semibold text-foreground">Regras Gerais de Combate</h2>
+
+			<div class="grid gap-4 lg:grid-cols-2">
+				<div class="flex flex-col gap-4">
+					{
+						geralColuna1.map((card) => (
+							<div class="panel p-5">
+								<h3 class="mb-2 font-display text-sm font-semibold text-foreground">{card.title}</h3>
+								<ul class="flex flex-col gap-1.5 text-sm text-muted-foreground">
+									{card.items.map((item) => <li>{item}</li>)}
+								</ul>
+							</div>
+						))
+					}
+				</div>
+
+				<div class="flex flex-col gap-4">
+					{
+						geralColuna2
+							.filter((c) => c.title !== '7. Pontos de Magia (PM) e Sorte')
+							.map((card) => (
+								<div class="panel p-5">
+									<h3 class="mb-2 font-display text-sm font-semibold text-foreground">{card.title}</h3>
+									<ul class="flex flex-col gap-1.5 text-sm text-muted-foreground">
+										{card.items.map((item) => <li>{item}</li>)}
+									</ul>
+								</div>
+							))
+					}
+
+					<div class="panel p-5">
+						<h3 class="mb-2 font-display text-sm font-semibold text-foreground">7. Pontos de Magia (PM) e Sorte</h3>
+						<ul class="mb-3 flex flex-col gap-1.5 text-sm text-muted-foreground">
+							{geralColuna2.find((c) => c.title === '7. Pontos de Magia (PM) e Sorte')?.items.map((item) => <li>{item}</li>)}
+						</ul>
+
+						<p class="mb-2 text-xs font-semibold uppercase tracking-[0.06em] text-muted-foreground">Efeito de Exaustão — Role 1d6 (PM 0)</p>
+						<p class="mb-2 text-xs text-muted-foreground">
+							Ao zerar os PM em campo, role 1d6 para definir o efeito da Exaustão. Ele dura até o personagem
+							recuperar ao menos 1 PM (ou descansar, no caso do resultado 6).
+						</p>
+						<div class="flex flex-col gap-1.5">
+							{
+								exaustao.map((e) => (
+									<div class="flex gap-3 rounded-lg border border-border bg-muted/20 p-2.5 text-xs">
+										<span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-muted font-display text-[11px] font-semibold text-foreground">
+											{e.d6}
+										</span>
+										<p class="text-muted-foreground"><strong class="text-foreground">{e.nome}:</strong> {e.efeito}</p>
+									</div>
+								))
+							}
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<div class="panel border-l-4 border-l-amber-500 p-5">
+				<h3 class="mb-2 font-display text-sm font-semibold text-amber-400">📚 Feitiços &amp; o Conhecimento do Jogador</h3>
+				<p class="text-sm leading-relaxed text-muted-foreground">
+					Este sistema valoriza o <strong class="text-foreground">conhecimento do próprio jogador</strong> em
+					relação aos feitiços do mundo bruxo. Não existe uma lista fechada e definitiva de magias — o
+					jogador é livre para invocar qualquer feitiço que conheça do lore, desde que aprovado pelo Mestre
+					para o contexto da cena. <em>Agentes que estudam o mundo que protegem lutam melhor nele.</em>
+				</p>
+			</div>
+		</section>
+
+		<!-- FEITIÇOS DE CURA -->
+		<section class="flex flex-col gap-4">
+			<h2 class="font-display text-xl font-semibold text-foreground">Feitiços de Cura</h2>
+
+			<div class="panel-accent panel-accent--gold">
+				<p class="text-sm leading-relaxed text-muted-foreground">
+					Feitiços de Cura diferem drasticamente dependendo de quando são usados. Em combate, são ações de
+					alto risco e recompensa; fora, qualquer um pode tentar.
+				</p>
+			</div>
+
+			<div class="grid gap-4 lg:grid-cols-2">
+				<div class="panel border-l-4 border-l-amber-500 p-5">
+					<h3 class="mb-2 font-display text-sm font-semibold text-foreground">⚔ Em Combate (Ação Restrita)</h3>
+					<p class="mb-3 text-sm text-muted-foreground">
+						<strong class="text-foreground">Apenas Agentes com Curandeirismo acima de 50%</strong> podem
+						tentar lançar Feitiços de Cura durante um combate ativo.
+					</p>
+					<ul class="mb-3 flex flex-col gap-1.5 text-sm text-muted-foreground">
+						<li><strong class="text-foreground">Ação necessária:</strong> Ação de Combate do turno + 1 PM.</li>
+						<li><strong class="text-foreground">Alvo:</strong> você mesmo ou um aliado próximo (até 6 quadrados).</li>
+						<li><strong class="text-foreground">Teste:</strong> role 1d100 usando Curandeirismo.</li>
+					</ul>
+					<div class="flex flex-col gap-1.5">
+						{
+							curaCombate.map((r) => (
+								<div class="flex gap-2 rounded-lg border border-border bg-muted/20 p-2.5 text-xs">
+									<strong class="w-32 shrink-0 text-foreground">{r.nivel}</strong>
+									<p class="text-muted-foreground">{r.efeito}</p>
+								</div>
+							))
+						}
+					</div>
+				</div>
+
+				<div class="panel p-5">
+					<h3 class="mb-2 font-display text-sm font-semibold text-foreground">🌿 Fora de Combate (Ação Irrestrita)</h3>
+					<p class="mb-3 text-sm text-muted-foreground">
+						<strong class="text-foreground">Qualquer Agente pode tentar 1x</strong> lançar um Feitiço de Cura
+						fora de combate, independente do nível em Curandeirismo (quem é especializado pode tentar à vontade).
+					</p>
+					<ul class="mb-3 flex flex-col gap-1.5 text-sm text-muted-foreground">
+						<li><strong class="text-foreground">Custo:</strong> 1 PM.</li>
+						<li><strong class="text-foreground">Teste:</strong> role 1d100 usando Curandeirismo.</li>
+					</ul>
+					<div class="flex flex-col gap-1.5">
+						{
+							curaForaDeCombate.map((r) => (
+								<div class="flex gap-2 rounded-lg border border-border bg-muted/20 p-2.5 text-xs">
+									<strong class="w-32 shrink-0 text-foreground">{r.nivel}</strong>
+									<p class="text-muted-foreground">{r.efeito}</p>
+								</div>
+							))
+						}
+					</div>
+				</div>
+			</div>
+		</section>
+
+		<!-- MEDIDOR DE ESTILO -->
+		<section class="flex flex-col gap-4">
+			<h2 class="font-display text-xl font-semibold text-foreground">Medidor de Estilo</h2>
+
+			<div class="panel p-5">
+				<p class="mb-3 text-xs font-semibold uppercase tracking-[0.07em] text-muted-foreground">Rank Atual</p>
+				<div class="flex flex-wrap gap-2">
+					{
+						ranks.map((r) => (
+							<span
+								class="flex h-9 min-w-9 items-center justify-center rounded-full px-2 font-display text-sm font-bold"
+								style={`background:color-mix(in oklch, ${r.color}, transparent 82%); color:${r.color}; box-shadow: inset 0 0 0 1px color-mix(in oklch, ${r.color}, transparent 55%);`}
+							>
+								{r.label}
+							</span>
+						))
+					}
+				</div>
+			</div>
+
+			<div class="grid gap-4 lg:grid-cols-2">
+				<div class="panel p-5">
+					<h3 class="mb-2 font-display text-sm font-semibold text-primary">Você ganha 1 nível quando:</h3>
+					<ul class="flex flex-col gap-1.5 text-sm text-muted-foreground">
+						<li>Usa um feitiço diferente dos anteriores.</li>
+						<li>Combina Efeito + Dano em sequência.</li>
+						<li>Realiza uma Esquiva bem sucedida.</li>
+						<li>Faz uma descrição memorável ou vence um confronto difícil.</li>
+						<li><strong class="text-foreground">Flanqueio Perfeito:</strong> usa a Translocação para surgir no flanco/costas inimigo contornando a cobertura.</li>
+						<li>Reverte a magia de cenário (Sucesso Maior) ou obtém Sucesso Extremo no cenário.</li>
+						<li><strong class="text-foreground">Sinergia:</strong> acerta uma Ação de Cenário e uma de Combate no mesmo turno.</li>
+					</ul>
+				</div>
+
+				<div class="panel p-5">
+					<h3 class="mb-2 font-display text-sm font-semibold text-rose-400">Você perde 1 nível quando:</h3>
+					<ul class="flex flex-col gap-1.5 text-sm text-muted-foreground">
+						<li>Repete o mesmo feitiço de combate já usado no duelo.</li>
+						<li>Erra uma Ação de Ataque e uma Ação de Cenário no mesmo turno.</li>
+						<li>Usa sempre a mesma tática sem variação.</li>
+						<li>Falha ao tentar contestar o cenário no Embate Ambiental.</li>
+						<li>Erra um ataque à distância (Sniping) com Overcast.</li>
+					</ul>
+				</div>
+			</div>
+
+			<div class="panel p-5">
+				<p class="mb-3 text-xs font-semibold uppercase tracking-[0.07em] text-muted-foreground">Benefícios por Rank</p>
+				<div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+					{
+						beneficios.map((b) => (
+							<div class="flex flex-col gap-1.5 rounded-lg border border-border bg-muted/20 p-3">
+								<strong class="font-display text-lg" style={`color:${b.color};`}>{b.rank}</strong>
+								<span class="text-xs text-muted-foreground">{b.desc}</span>
+							</div>
+						))
+					}
+				</div>
+			</div>
+		</section>
+	</main>
+</Layout>
