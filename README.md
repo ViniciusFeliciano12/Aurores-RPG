@@ -7,6 +7,7 @@ Stack: [Astro](https://astro.build) (SSR) + [React](https://react.dev) (islands 
 ```text
 /
 ├── public/                    # assets estáticos (favicon, etc.), copiados 1:1 no build
+│   └── _headers               # security headers aplicados pelo Cloudflare (CSP, HSTS, etc.)
 ├── src/
 │   ├── pages/                 # rotas do site (roteamento por sistema de arquivos)
 │   │   ├── index.astro        # home: hero + login/cadastro + grade de áreas do sistema
