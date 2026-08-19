@@ -5,7 +5,7 @@ interface NavItem {
 }
 
 interface Props {
-	active: 'ficha' | 'campanha' | 'combate' | 'criacao' | 'glossario' | 'itens' | 'perfil';
+	active: 'ficha' | 'campanha' | 'combate' | 'criacao' | 'glossario' | 'acervo' | 'perfil';
 	redirectIfLoggedOut?: boolean;
 }
 
@@ -17,7 +17,7 @@ const navItems: Array<NavItem & { key: Props['active'] }> = [
 	{ key: 'combate', href: '/regras-de-combate', label: 'Regras de Combate' },
 	{ key: 'criacao', href: '/regras-de-criacao', label: 'Regras de Criação' },
 	{ key: 'glossario', href: '/glossario', label: 'Glossário' },
-	{ key: 'itens', href: '/itens', label: 'Itens' },
+	{ key: 'acervo', href: '/acervo', label: 'Acervo' },
 ];
 ---
 
