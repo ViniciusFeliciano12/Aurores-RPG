@@ -24,7 +24,7 @@ const navItems: Array<NavItem & { key: Props['active'] }> = [
 <header
 	id="internal-header"
 	data-redirect-if-logged-out={redirectIfLoggedOut}
-	class="relative flex items-center justify-between gap-4 border-b border-border bg-background/80 px-4 py-3 backdrop-blur sm:px-6"
+	class="relative flex items-center justify-between gap-4 border-b border-border bg-card/70 px-4 py-3 shadow-[0_1px_0_rgba(255,255,255,0.04)_inset,0_4px_16px_-8px_rgba(0,0,0,0.6)] backdrop-blur sm:px-6"
 >
 	<a href="/" class="flex shrink-0 items-center gap-2">
 		<span class="text-primary">⚡</span>
@@ -36,10 +36,10 @@ const navItems: Array<NavItem & { key: Props['active'] }> = [
 			navItems.map((item) => (
 				<a
 					href={item.href}
-					class={`relative whitespace-nowrap px-3 py-2 font-medium transition ${
+					class={`whitespace-nowrap rounded-lg px-3 py-1.5 font-medium transition ${
 						item.key === active
-							? 'text-primary after:absolute after:inset-x-3 after:-bottom-px after:h-0.5 after:rounded-full after:bg-primary after:content-[""]'
-							: 'text-muted-foreground hover:text-foreground'
+							? 'bg-primary/15 text-primary ring-1 ring-primary/30'
+							: 'text-muted-foreground hover:bg-muted hover:text-foreground'
 					}`}
 				>
 					{item.label}
@@ -49,7 +49,7 @@ const navItems: Array<NavItem & { key: Props['active'] }> = [
 	</nav>
 
 	<div class="flex shrink-0 items-center gap-2">
-		<div class="flex items-center gap-2 rounded-lg border border-border bg-background px-2 py-1.5">
+		<div class="flex items-center gap-2 rounded-lg border border-border bg-background/60 px-2 py-1.5">
 			<div
 				id="user-avatar"
 				class="flex h-6 w-6 items-center justify-center overflow-hidden rounded-full bg-primary/20 text-xs font-bold text-primary"
@@ -62,7 +62,7 @@ const navItems: Array<NavItem & { key: Props['active'] }> = [
 
 		<a
 			href="/perfil"
-			class="rounded-lg border border-border bg-background px-2.5 py-1.5 text-sm transition hover:bg-muted"
+			class="rounded-lg border border-border bg-background/60 px-2.5 py-1.5 text-sm transition hover:bg-muted"
 		>
 			Perfil
 		</a>
@@ -70,7 +70,7 @@ const navItems: Array<NavItem & { key: Props['active'] }> = [
 		<button
 			id="sign-out"
 			type="button"
-			class="rounded-lg border border-border bg-background px-2.5 py-1.5 text-sm transition hover:bg-muted"
+			class="rounded-lg border border-border bg-background/60 px-2.5 py-1.5 text-sm transition hover:bg-muted"
 		>
 			Sair
 		</button>

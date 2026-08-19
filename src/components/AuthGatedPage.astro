@@ -25,14 +25,17 @@ const { active, title, eyebrow, heading, description, icon, emptyText, requireAu
 		class="relative mx-auto flex max-w-5xl flex-col gap-8 px-4 py-16"
 		style={requireAuth ? 'display: none;' : undefined}
 	>
-		<div class="flex flex-col gap-2">
-			<p class="text-xs uppercase tracking-[0.3em] text-muted-foreground">{eyebrow}</p>
-			<h1 class="font-display text-3xl font-bold text-foreground">{heading}</h1>
-			<p class="text-sm text-muted-foreground">{description}</p>
+		<div class="flex flex-col gap-3">
+			<span class="icon-badge">{icon}</span>
+			<div class="flex flex-col gap-1.5">
+				<p class="text-xs uppercase tracking-[0.3em] text-muted-foreground">{eyebrow}</p>
+				<h1 class="font-display text-3xl font-bold text-foreground">{heading}</h1>
+				<p class="text-sm text-muted-foreground">{description}</p>
+			</div>
 		</div>
 
-		<div class="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border bg-card/40 px-6 py-16 text-center">
-			<span class="text-3xl">{icon}</span>
+		<div class="panel flex flex-col items-center gap-3 border-dashed px-6 py-16 text-center">
+			<span class="text-3xl opacity-70">{icon}</span>
 			<p class="text-sm text-muted-foreground">{emptyText}</p>
 		</div>
 	</main>

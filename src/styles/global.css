@@ -54,22 +54,23 @@
 
 /* Wyrdcall runs dark-only for now, so the palette lives on :root directly. */
 :root {
-  --background: #020617;
+  --background: #05070f;
   --foreground: #f1f5f9;
-  --card: #0f172a;
+  --card: #131d33;
   --card-foreground: #f1f5f9;
-  --popover: #0f172a;
+  --popover: #131d33;
   --popover-foreground: #f1f5f9;
   --primary: #10b981;
-  --primary-foreground: #020617;
-  --secondary: #1e293b;
+  --primary-foreground: #031510;
+  --secondary: #1c2a47;
   --secondary-foreground: #f1f5f9;
-  --muted: #1e293b;
-  --muted-foreground: #94a3b8;
-  --accent: #1e293b;
+  --muted: #17223b;
+  --muted-foreground: #97a3bd;
+  --accent: #1c2a47;
   --accent-foreground: #f1f5f9;
+  --accent-gold: #f2b84b;
   --destructive: #dc2626;
-  --border: rgba(148, 163, 184, 0.2);
+  --border: rgba(148, 163, 184, 0.16);
   --input: rgba(148, 163, 184, 0.2);
   --ring: rgba(16, 185, 129, 0.5);
   --chart-1: #10b981;
@@ -78,13 +79,13 @@
   --chart-4: #a7f3d0;
   --chart-5: #047857;
   --radius: 0.75rem;
-  --sidebar: #0f172a;
+  --sidebar: #131d33;
   --sidebar-foreground: #f1f5f9;
   --sidebar-primary: #10b981;
-  --sidebar-primary-foreground: #020617;
-  --sidebar-accent: #1e293b;
+  --sidebar-primary-foreground: #031510;
+  --sidebar-accent: #1c2a47;
   --sidebar-accent-foreground: #f1f5f9;
-  --sidebar-border: rgba(148, 163, 184, 0.2);
+  --sidebar-border: rgba(148, 163, 184, 0.16);
   --sidebar-ring: rgba(16, 185, 129, 0.5);
 }
 
@@ -97,5 +98,26 @@
   }
   html {
     @apply font-sans;
+  }
+}
+
+@layer components {
+  .panel {
+    @apply rounded-xl border border-border bg-card shadow-[0_1px_0_rgba(255,255,255,0.04)_inset,0_8px_24px_-12px_rgba(0,0,0,0.6)];
+  }
+  .panel-accent {
+    @apply relative overflow-hidden rounded-xl border bg-card p-5 shadow-[0_1px_0_rgba(255,255,255,0.04)_inset,0_8px_24px_-12px_rgba(0,0,0,0.6)] before:absolute before:inset-x-0 before:top-0 before:h-0.5;
+  }
+  .panel-accent--gold {
+    @apply border-[color-mix(in_oklch,var(--accent-gold),transparent_60%)] bg-[color-mix(in_oklch,var(--accent-gold),var(--card)_92%)] before:bg-[var(--accent-gold)];
+  }
+  .panel-accent--rose {
+    @apply border-rose-500/30 bg-[color-mix(in_oklch,theme(colors.rose.500),var(--card)_92%)] before:bg-rose-500;
+  }
+  .text-gold {
+    color: var(--accent-gold);
+  }
+  .icon-badge {
+    @apply flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-xl ring-1 ring-primary/20;
   }
 }

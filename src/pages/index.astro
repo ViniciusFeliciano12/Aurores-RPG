@@ -43,7 +43,7 @@ const areas = [
 ---
 
 <Layout>
-	<header class="relative border-b border-border bg-background/80 px-4 py-4 backdrop-blur">
+	<header class="relative border-b border-border bg-card/70 px-4 py-4 shadow-[0_1px_0_rgba(255,255,255,0.04)_inset,0_4px_16px_-8px_rgba(0,0,0,0.6)] backdrop-blur">
 		<div class="mx-auto flex max-w-5xl items-center justify-between">
 			<div class="flex items-center gap-2">
 				<span class="text-primary">⚡</span>
@@ -53,11 +53,15 @@ const areas = [
 		</div>
 	</header>
 
-	<main class="relative mx-auto flex max-w-5xl flex-col gap-12 px-4 py-16">
+	<main class="relative mx-auto flex max-w-5xl flex-col gap-14 px-4 py-16">
 		<div class="flex flex-col items-center gap-3 text-center">
-			<span class="text-4xl">⚡</span>
+			<span class="icon-badge text-2xl">⚡</span>
 			<p class="text-xs uppercase tracking-[0.3em] text-muted-foreground">Campanhas &amp; personagens</p>
-			<h1 class="font-display text-4xl font-bold tracking-wide text-foreground sm:text-5xl">Wyrdcall</h1>
+			<h1 class="font-display text-4xl font-bold tracking-wide text-foreground sm:text-5xl">
+				<span class="bg-gradient-to-br from-primary via-emerald-300 to-[var(--accent-gold)] bg-clip-text text-transparent">
+					Wyrdcall
+				</span>
+			</h1>
 			<p class="max-w-md text-sm text-muted-foreground">
 				Reúna sua mesa, gerencie campanhas, fichas e consulte as regras — tudo em um só lugar.
 			</p>
@@ -76,9 +80,9 @@ const areas = [
 						areas.map((area) => (
 							<a
 								href={area.href}
-								class="group flex flex-col gap-2 rounded-xl bg-card p-5 text-sm ring-1 ring-foreground/10 transition hover:ring-primary/50"
+								class="group panel flex flex-col gap-3 p-5 text-sm transition hover:-translate-y-0.5 hover:border-primary/40"
 							>
-								<span class="text-2xl">{area.icon}</span>
+								<span class="icon-badge">{area.icon}</span>
 								<span class="font-display font-semibold text-foreground group-hover:text-primary">
 									{area.title}
 								</span>
@@ -91,7 +95,7 @@ const areas = [
 		</div>
 	</main>
 
-	<footer class="border-t border-border px-4 py-6 text-center text-xs text-muted-foreground">
+	<footer class="border-t border-border bg-card/40 px-4 py-6 text-center text-xs text-muted-foreground">
 		Wyrdcall · Uso interno da mesa
 	</footer>
 </Layout>
