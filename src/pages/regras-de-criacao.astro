@@ -1,14 +1,658 @@
 ---
-import AuthGatedPage from '../components/AuthGatedPage.astro';
+import Layout from '../layouts/Layout.astro';
+import InternalHeader from '../components/InternalHeader.astro';
+
+interface SpecCard {
+	title: string;
+	flavor: string;
+	skills: string[];
+	note: string;
+}
+
+interface SpecCategory {
+	title: string;
+	description: string;
+	cards: SpecCard[];
+}
+
+interface SchoolCard {
+	title: string;
+	region: string;
+	flavor: string;
+	bonuses: string[];
+	special?: string;
+}
+
+interface Patente {
+	insignia: string;
+	nome: string;
+	rank: string;
+	acesso: string;
+	descricao: string;
+}
+
+const categories: SpecCategory[] = [
+	{
+		title: '⚔ Linha de Combate',
+		description: 'Agentes treinados para confronto direto — magia ofensiva, defesa e leitura de postura.',
+		cards: [
+			{
+				title: '🗲 Duelista de Linha',
+				flavor:
+					'O Agente clássico de duelo formal. Troca feitiços cara a cara e lê a guarda do oponente como ninguém.',
+				skills: [
+					'Magia de Combate',
+					'Defesa Mágica',
+					'Esquiva',
+					'Conjuração',
+					'Luta Corporal',
+					'Encantamento',
+					'Percepção Arcana',
+					'Transfiguração',
+				],
+				note: 'Foco no Medidor de Estilo: sobe rank rápido por variar feitiços em duelo direto.',
+			},
+			{
+				title: '🎯 Artilheiro de Cerco',
+				flavor: 'Pensa em distância, ângulo e overcast. Prefere abater o alvo antes que ele chegue perto.',
+				skills: [
+					'Magia de Combate',
+					'Arremessar',
+					'Encantamento',
+					'Conjuração',
+					'Percepção Arcana',
+					'Atletismo/Pular',
+					'Teoria da Magia/Runas',
+					'Esquiva',
+				],
+				note: 'Alcance Ampliado: ataca sem nenhuma Desvantagem até 12 quadrados (18m) — o dobro do alcance Curto normal, cobrindo o que seria a faixa Média para qualquer outro Agente. A partir de 13 quadrados (faixa Longa), a penalidade de distância volta a valer normalmente. Também domina o Overcast como ninguém.',
+			},
+			{
+				title: '💀 Caçador das Trevas',
+				flavor: 'Conhece as Artes das Trevas para melhor combatê-las. Anda na linha entre o lícito e o necessário.',
+				skills: [
+					'Magia das Trevas',
+					'Magia de Combate',
+					'Intimidação',
+					'Furtividade',
+					'Rastreamento Mágico',
+					'História da Magia',
+					'Defesa Mágica',
+					'Esquiva',
+				],
+				note: 'Único com acesso confortável a Magia das Trevas (01% base); abuso tem consequências narrativas a critério do Mestre.',
+			},
+			{
+				title: '👊 Combatente Corpo-a-Corpo',
+				flavor: 'Quando a varinha falha ou é desarmada, este Agente já está com os punhos prontos.',
+				skills: [
+					'Luta Corporal',
+					'Atletismo/Pular',
+					'Esquiva',
+					'Natação',
+					'Defesa Mágica',
+					'Percepção Arcana',
+					'Arremessar',
+					'Sobrevivência',
+				],
+				note: 'Recupera Postura com facilidade via Ataque após Esquiva e bloqueios físicos.',
+			},
+			{
+				title: '🪽 Cavaleiro Aéreo',
+				flavor: 'Leva o duelo para o ar. Combina manobras aéreas com magia de combate em pleno voo.',
+				skills: [
+					'Voo Arcano',
+					'Magia de Combate',
+					'Percepção Arcana',
+					'Arremessar',
+					'Esquiva',
+					'Atletismo/Pular',
+					'Encantamento',
+					'Conjuração',
+				],
+				note: 'Flanqueios aéreos contam em dobro para fins de Flanqueio Perfeito no Medidor de Estilo, a critério do Mestre.',
+			},
+		],
+	},
+	{
+		title: '🔍 Linha de Investigação',
+		description: 'Agentes que resolvem o caso com a mente — perícia, dedução e conhecimento arcano.',
+		cards: [
+			{
+				title: '🧪 Investigador Forense',
+				flavor: 'Lê a cena do crime mágico como um livro aberto: vestígios, feitiços residuais e provas.',
+				skills: [
+					'Percepção Arcana',
+					'Usar Biblioteca',
+					'Psicologia',
+					'Disfarce',
+					'Rastreamento Mágico',
+					'Leis do Conselho',
+					'Escutar',
+					'Arqueologia/Geologia',
+				],
+				note: 'Excelente em Ações de Cenário; reverter o cenário com Sucesso Maior é rotina.',
+			},
+			{
+				title: '⚰ Especialista em Necro-investigação',
+				flavor: 'Investiga magia das trevas, maldições e mortes suspeitas sem se deixar corromper pelo tema.',
+				skills: [
+					'Magia das Trevas',
+					'História da Magia',
+					'Percepção Arcana',
+					'Psicologia',
+					'Rastreamento Mágico',
+					'Usar Biblioteca',
+					'Antiguidades Mágicas',
+					'Intimidação',
+				],
+				note: 'Resistente a abalos psicológicos ao investigar cenas envolvendo Magia das Trevas (bônus narrativo a critério do Mestre).',
+			},
+			{
+				title: '🐺 Rastreador Mágico',
+				flavor: 'Segue trilhas que ninguém mais vê — mágicas, animais ou humanas — por qualquer terreno.',
+				skills: [
+					'Rastreamento Mágico',
+					'Sobrevivência',
+					'Percepção Arcana',
+					'Furtividade',
+					'Trato de Criaturas',
+					'Escutar',
+					'Atletismo/Pular',
+					'Arremessar',
+				],
+				note: 'Praticamente nunca perde um alvo em fuga; ideal para perseguições e Ações de Cenário ao ar livre.',
+			},
+			{
+				title: '📐 Analista Arcano',
+				flavor: 'Decifra runas, calcula aritmancia e reconstrói feitiços a partir de fragmentos teóricos.',
+				skills: [
+					'Teoria da Magia/Runas',
+					'Aritmancia',
+					'Usar Biblioteca',
+					'Antiguidades Mágicas',
+					'Arqueologia/Geologia',
+					'Alquimia',
+					'Encantamento',
+					'Conjuração',
+				],
+				note: 'Referência da equipe para identificar feitiços desconhecidos e objetos amaldiçoados.',
+			},
+			{
+				title: '📡 Agente de Inteligência',
+				flavor: 'Coleta informação antes que a missão comece — contatos, escutas e disfarces.',
+				skills: [
+					'Escutar',
+					'Percepção Arcana',
+					'Disfarce',
+					'Lábia',
+					'Psicologia',
+					'Línguas Mágicas',
+					'Usar Biblioteca',
+					'Leis do Conselho',
+				],
+				note: 'Prefere resolver a missão com informação antes que ela vire um confronto.',
+			},
+		],
+	},
+	{
+		title: '🗣 Linha Social',
+		description: 'Agentes que resolvem com palavras o que outros resolveriam com feitiços.',
+		cards: [
+			{
+				title: '🏛 Diplomata do Conselho',
+				flavor: 'Ponte entre o Conselho Arcano, outras nações mágicas e o mundo não-mágico. Vive de protocolo e acordo.',
+				skills: [
+					'Charme',
+					'Lábia',
+					'Leis do Conselho',
+					'Psicologia',
+					'Línguas Mágicas',
+					'Estudo dos Não-mágicos',
+					'Arte/Criação',
+					'Intimidação',
+				],
+				note: 'Mestre em transformar confrontos em Ações de Cenário sociais, evitando combate quando possível.',
+			},
+			{
+				title: '🎭 Infiltrador Social',
+				flavor: 'Entra em festas, repartições e círculos fechados sem nunca ser quem diz que é.',
+				skills: [
+					'Disfarce',
+					'Esconder',
+					'Furtividade',
+					'Prestidigitação',
+					'Psicologia',
+					'Percepção Arcana',
+					'Atletismo/Pular',
+					'Luta Corporal',
+				],
+				note: 'O Teleporte para flanco/costas é a assinatura tática quando o disfarce cai.',
+			},
+			{
+				title: '🕊 Negociador de Crise',
+				flavor: 'Entra em cena quando alguém está prestes a fazer algo irreversível e a missão é evitar isso.',
+				skills: [
+					'Lábia',
+					'Psicologia',
+					'Intimidação',
+					'Charme',
+					'Percepção Arcana',
+					'Leis do Conselho',
+					'Escutar',
+					'Defesa Mágica',
+				],
+				note: 'Especialista em desescalar confrontos antes que cheguem ao Medidor de Estilo.',
+			},
+			{
+				title: '🌐 Especialista em Assuntos Externos',
+				flavor: 'Vive na fronteira entre os dois mundos, resolvendo incidentes que envolvem não-mágicos.',
+				skills: [
+					'Estudo dos Não-mágicos',
+					'Disfarce',
+					'Charme',
+					'Lábia',
+					'Prestidigitação',
+					'Arte/Criação',
+					'Línguas Mágicas',
+					'Percepção Arcana',
+				],
+				note: 'Referência da equipe em encobrimento de incidentes e trânsito discreto entre os mundos.',
+			},
+			{
+				title: '🦉 Mediador Mágico-Criatura',
+				flavor: 'Fala a língua de criaturas mágicas e comunidades não-humanas, evitando conflitos por tradução.',
+				skills: [
+					'Trato de Criaturas',
+					'Línguas Mágicas',
+					'Charme',
+					'Psicologia',
+					'Herbologia',
+					'Sobrevivência',
+					'Percepção Arcana',
+					'Lábia',
+				],
+				note: 'Essencial em missões envolvendo centauros, duendes, gigantes e outras comunidades mágicas.',
+			},
+		],
+	},
+	{
+		title: '🌲 Linha de Campo',
+		description: 'Agentes que vivem fora dos escritórios — sobrevivência, natureza e cura em condições adversas.',
+		cards: [
+			{
+				title: '🏕 Batedor de Fronteira',
+				flavor: 'Vive em território hostil, mapeando rotas e sobrevivendo onde o Conselho não alcança.',
+				skills: [
+					'Sobrevivência',
+					'Furtividade',
+					'Esconder',
+					'Rastreamento Mágico',
+					'Atletismo/Pular',
+					'Natação',
+					'Percepção Arcana',
+					'Arremessar',
+				],
+				note: 'Ideal para missões longas em florestas, montanhas e fronteiras mágicas isoladas.',
+			},
+			{
+				title: '🐉 Naturalista Arcano',
+				flavor: 'Trata com criaturas e ambientes selvagens. Tão à vontade numa floresta quanto num duelo.',
+				skills: [
+					'Trato de Criaturas',
+					'Herbologia',
+					'Sobrevivência',
+					'Rastreamento Mágico',
+					'Percepção Arcana',
+					'Arremessar',
+					'Natação',
+					'Voo Arcano',
+				],
+				note: 'Forte em Ações de Cenário ao ar livre e contra criaturas mágicas fora do padrão humano.',
+			},
+			{
+				title: '🌿 Curandeiro de Campo',
+				flavor: 'Mantém a equipe em pé longe de qualquer hospital mágico, improvisando tratamento com o que a natureza oferece.',
+				skills: [
+					'Curandeirismo',
+					'Herbologia',
+					'Poções',
+					'Psicologia',
+					'Percepção Arcana',
+					'Usar Biblioteca',
+					'Alquimia',
+					'Sobrevivência',
+				],
+				note: 'Em combate, prioriza Ação de Foco para recuperar Postura própria e dos aliados.',
+			},
+			{
+				title: '⚗ Alquimista de Campo',
+				flavor:
+					'Prepara poções e reagentes improvisados em campo, transformando ingredientes locais em soluções táticas.',
+				skills: [
+					'Alquimia',
+					'Poções',
+					'Herbologia',
+					'Teoria da Magia/Runas',
+					'Usar Biblioteca',
+					'Curandeirismo',
+					'Conjuração',
+					'Arqueologia/Geologia',
+				],
+				note: 'Pode preparar contravenenos e poções de emergência mesmo sem laboratório, a critério do Mestre.',
+			},
+			{
+				title: '🏺 Explorador de Ruínas',
+				flavor: 'Adentra túmulos, templos e ruínas esquecidas em busca de relíquias e respostas históricas.',
+				skills: [
+					'Arqueologia/Geologia',
+					'Antiguidades Mágicas',
+					'Sobrevivência',
+					'Esconder',
+					'Percepção Arcana',
+					'Rastreamento Mágico',
+					'História da Magia',
+					'Furtividade',
+				],
+				note: 'Especialista em detectar e desarmar armadilhas mágicas antigas em ruínas e tumbas.',
+			},
+		],
+	},
+];
+
+const patentes: Patente[] = [
+	{
+		insignia: '🔵',
+		nome: 'Cadete',
+		rank: 'Rank 1',
+		acesso: 'Acesso: Rank 1',
+		descricao:
+			'Agente em treinamento supervisionado. Ainda não possui autonomia operacional plena. Acesso apenas ao equipamento básico de campo.',
+	},
+	{
+		insignia: '🟢',
+		nome: 'Investigador',
+		rank: 'Rank 2',
+		acesso: 'Acesso: Rank 1–2',
+		descricao:
+			'Agente certificado para missões de baixo a médio risco. Trabalha de forma semi-independente com supervisão ocasional.',
+	},
+	{
+		insignia: '🟡',
+		nome: 'Agente Pleno',
+		rank: 'Rank 3',
+		acesso: 'Acesso: Rank 1–3',
+		descricao:
+			'Agente operacional pleno. Autorizado a conduzir missões de alto risco de forma independente e liderar esquadrões em campo.',
+	},
+	{
+		insignia: '🟠',
+		nome: 'Inspetor',
+		rank: 'Rank 4',
+		acesso: 'Acesso: Rank 1–4',
+		descricao:
+			'Veterano com histórico em operações críticas. Autorizado a requisitar equipamentos estratégicos de uso restrito.',
+	},
+	{
+		insignia: '🔴',
+		nome: 'Comandante',
+		rank: 'Rank 5',
+		acesso: 'Acesso: Rank 1–5',
+		descricao:
+			'Autoridade máxima de campo no Conselho. Acesso irrestrito ao arsenal completo. Decide o destino de missões críticas.',
+	},
+];
+
+const schools: SchoolCard[] = [
+	{
+		title: '🏰 Academia Real de Artes Arcanas',
+		region: 'Reino de Albian',
+		flavor: 'Tradição equilibrada entre diferentes linhagens internas; formação generalista e versátil.',
+		bonuses: ['+10% em Encantamento ou Defesa Mágica (escolha na criação)', '+5% em Magia de Combate'],
+	},
+	{
+		title: '🦅 Instituto Ilverwood',
+		region: 'República de Ilvera',
+		flavor: 'Escola jovem e pragmática, conhecida por duelistas rápidos e variantes de feitiço próprias.',
+		bonuses: ['+10% em Magia de Combate', '+5% em Conjuração'],
+	},
+	{
+		title: '🌸 Conservatório Fleurdelune',
+		region: 'Ducado de Fleurmont',
+		flavor: 'Refinamento e sutileza. Magia tratada quase como uma arte performática.',
+		bonuses: ['+10% em Charme', '+10% em Prestidigitação'],
+	},
+	{
+		title: '🎏 Academia Tenkai',
+		region: 'Ilhas de Tenrai',
+		flavor: 'Disciplina rígida; alunos aprendem a voar antes mesmo de dominar a varinha com firmeza.',
+		bonuses: ['+15% em Voo Arcano', '+5% em Esquiva'],
+	},
+	{
+		title: '🌍 Grande Academia de Uzuri',
+		region: 'Planaltos de Uzuri',
+		flavor: 'A maior escola de magia do mundo. Tradicionalmente não usa varinhas, canalizando magia diretamente pelo corpo e gestos.',
+		bonuses: ['+10% em Conjuração'],
+		special:
+			'Magia sem Varinha: pode lançar qualquer feitiço de Efeito ou de cenário (não-ofensivo) sem varinha em mãos, pagando 1 PM extra por uso. Feitiços de Dano ainda exigem varinha normalmente.',
+	},
+	{
+		title: '🌺 Castelo Verdemata',
+		region: 'Selva de Verdemata',
+		flavor: 'Erguido em meio à floresta; ensino centrado em plantas, criaturas e magia natural.',
+		bonuses: ['+10% em Herbologia', '+10% em Trato de Criaturas'],
+	},
+	{
+		title: '❄ Fortaleza Kolvenar',
+		region: 'Terras Geladas de Kolvenar',
+		flavor: 'Formação dura, voltada à sobrevivência em climas hostis e ao combate direto.',
+		bonuses: ['+10% em Sobrevivência', '+5% em Magia de Combate'],
+	},
+	{
+		title: '🐍 Academia Nortfang',
+		region: 'Fiordes de Nortfang',
+		flavor: 'Currículo que não evita as Artes das Trevas, formando agentes agressivos e diretos.',
+		bonuses: ['+10% em Magia das Trevas', '+5% em Intimidação'],
+	},
+	{
+		title: '🏠 Ensino Domiciliar',
+		region: 'Sem escola fixa',
+		flavor:
+			'Formação fora de qualquer instituição: tutores particulares, familiares bruxos ou autodidatismo. Sem tradição de uma escola específica, mas com liberdade para focar no que importa.',
+		bonuses: ['Escolha uma das opções abaixo na criação:', '+5% em duas perícias à sua escolha', 'ou +12% em uma perícia à sua escolha'],
+	},
+];
 ---
 
-<AuthGatedPage
-	active="criacao"
-	title="Regras de Criação · Wyrdcall"
-	eyebrow="Sistema"
-	heading="Regras de Criação"
-	description="Em construção — em breve você poderá consultar as regras de criação de personagem aqui."
-	icon="🎲"
-	emptyText="Nenhuma regra disponível ainda."
-	requireAuth={false}
-/>
+<Layout title="Regras de Criação · Wyrdcall">
+	<InternalHeader active="criacao" redirectIfLoggedOut={false} />
+
+	<main class="relative mx-auto flex max-w-7xl flex-col gap-14 px-4 py-16">
+		<div class="flex flex-col gap-2">
+			<p class="text-xs uppercase tracking-[0.3em] text-muted-foreground">Sistema d100 — Ficha de Agente Arcano</p>
+			<h1 class="font-display text-3xl font-bold text-foreground">Regras de Criação de Ficha</h1>
+		</div>
+
+		<!-- DISTRIBUIÇÃO E EVOLUÇÃO -->
+		<section class="flex flex-col gap-4">
+			<h2 class="font-display text-xl font-semibold text-foreground">Distribuição e Evolução (Criação)</h2>
+
+			<div class="panel p-5">
+				<ul class="flex flex-col gap-2 text-sm text-muted-foreground">
+					<li><strong class="text-foreground">Atributos base:</strong> Role 3d6 e multiplique por 5.</li>
+					<li>
+						<strong class="text-foreground">Ocupação:</strong> Pontos profissionais são <strong class="text-foreground">EDU × 4</strong>,
+						distribuídos <strong class="text-foreground">apenas</strong> entre as 8 perícias fixas da sua <strong class="text-foreground">Especialização</strong> (veja abaixo).
+					</li>
+					<li>
+						<strong class="text-foreground">Interesse Pessoal:</strong> Pontos extras são <strong class="text-foreground">INT × 2</strong>, livres para qualquer perícia da ficha.
+					</li>
+					<li><strong class="text-foreground">Limite:</strong> Nenhuma perícia pode passar de 75% na criação.</li>
+				</ul>
+			</div>
+
+			<div class="panel p-5">
+				<h3 class="mb-2 font-display text-sm font-semibold text-foreground">Evolução de Perícias (Fim da Missão)</h3>
+				<ul class="text-sm text-muted-foreground">
+					<li>
+						Role 1d100 para cada perícia marcada. Se tirar <strong class="text-foreground">MAIOR</strong> que o valor
+						atual, ganhe <strong class="text-foreground">1d10</strong> pontos.
+					</li>
+				</ul>
+			</div>
+		</section>
+
+		<!-- ESPECIALIZAÇÕES DE AGENTE -->
+		<section class="flex flex-col gap-6">
+			<h2 class="font-display text-xl font-semibold text-foreground">Especializações de Agente</h2>
+
+			<div class="panel-accent panel-accent--gold">
+				<p class="text-sm leading-relaxed text-muted-foreground">
+					Toda Ficha de Agente escolhe <strong class="text-foreground">uma Especialização</strong> na criação. Ela
+					define exatamente quais <strong class="text-foreground">8 perícias</strong> recebem os pontos de Ocupação
+					(<strong class="text-foreground">EDU × 4</strong>) — distribua os pontos livremente entre essas 8,
+					respeitando o limite de 75% na criação. Os pontos de Interesse Pessoal
+					(<strong class="text-foreground">INT × 2</strong>) continuam livres para qualquer perícia da ficha,
+					inclusive fora da lista da Especialização. São <strong class="text-foreground">20 Especializações</strong>
+					organizadas em 4 linhas temáticas.
+				</p>
+			</div>
+
+			{
+				categories.map((category) => (
+					<div class="flex flex-col gap-4">
+						<div class="flex flex-col gap-1">
+							<h3 class="font-display text-base font-semibold text-foreground">{category.title}</h3>
+							<p class="text-xs text-muted-foreground">{category.description}</p>
+						</div>
+
+						<div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+							{category.cards.map((card) => (
+								<div class="panel flex flex-col gap-2 p-4 transition hover:-translate-y-0.5 hover:border-primary/30">
+									<h4 class="font-display text-sm font-semibold text-foreground">{card.title}</h4>
+									<p class="text-xs text-muted-foreground">{card.flavor}</p>
+									<div class="flex flex-wrap gap-1.5">
+										{card.skills.map((skill) => (
+											<span class="rounded-full border border-border bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
+												{skill}
+											</span>
+										))}
+									</div>
+									<p class="mt-1 border-t border-border pt-2 text-xs text-muted-foreground">{card.note}</p>
+								</div>
+							))}
+						</div>
+					</div>
+				))
+			}
+		</section>
+
+		<!-- PATENTES DO CONSELHO -->
+		<section class="flex flex-col gap-4">
+			<h2 class="font-display text-xl font-semibold text-foreground">Patentes do Conselho</h2>
+
+			<div class="panel-accent panel-accent--gold">
+				<p class="text-sm leading-relaxed text-muted-foreground">
+					Todo Agente possui uma <strong class="text-foreground">Patente</strong> dentro do Departamento de
+					Investigações Arcanas, que reflete sua experiência, confiabilidade e nível de acesso ao arsenal do
+					Conselho. A patente evolui conforme o Agente demonstra resultados em campo — decisão narrativa do Mestre.
+					A patente também determina quais <strong class="text-foreground">itens de missão</strong> o Agente pode
+					requisitar antes de cada operação.
+				</p>
+			</div>
+
+			<div class="panel border-l-4 border-l-amber-500 p-5">
+				<h3 class="mb-2 font-display text-sm font-semibold text-amber-400">Sistema de Progressão de Patentes</h3>
+				<p class="mb-3 text-sm text-muted-foreground">
+					As patentes não são permanentes — elas evoluem conforme você completa missões e demonstra competência em
+					campo. Cada missão contribui para sua <strong class="text-foreground">Porcentagem de Experiência de Patente</strong>,
+					que vai de 0% a 100%.
+				</p>
+				<ul class="mb-3 flex flex-col gap-2 text-sm text-muted-foreground">
+					<li>
+						<strong class="text-foreground">Durante as missões:</strong> A cada operação bem-sucedida, o Mestre atribui
+						uma porcentagem baseada no desempenho (tipicamente 5–25% por missão, dependendo da dificuldade e
+						execução).
+					</li>
+					<li>
+						<strong class="text-foreground">Progresso acumulativo:</strong> A porcentagem é acumulada na sua patente
+						atual. Você pode acompanhar o progresso na sua ficha de Agente.
+					</li>
+					<li>
+						<strong class="text-foreground">Ao atingir 100%:</strong> Você sobe automaticamente para a próxima
+						patente. A porcentagem reseta a 0% na nova patente, e você imediatamente ganha acesso aos itens do novo
+						rank.
+					</li>
+					<li>
+						<strong class="text-foreground">Demissão ou falhas críticas:</strong> A critério do Mestre, falhas graves
+						em combate ou escolhas questionáveis podem reduzir a porcentagem ou até recuar uma patente.
+					</li>
+				</ul>
+				<div class="rounded-lg border border-primary/30 bg-primary/10 p-3 text-xs text-foreground">
+					<strong>Exemplo:</strong> Um Cadete com 60% de experiência completa uma missão média e recebe +30%. Agora tem
+					90%. Na próxima missão bem-sucedida com +15%, atinge 105% e é promovido a Investigador (começa com 5% em
+					Investigador).
+				</div>
+			</div>
+
+			<div class="panel-accent panel-accent--gold">
+				<h3 class="mb-3 font-display text-sm font-semibold text-amber-400">Hierarquia de Patentes</h3>
+				<div class="flex flex-col gap-3">
+					{
+						patentes.map((patente) => (
+							<div class="panel flex items-start gap-3 p-4">
+								<span class="text-2xl leading-none">{patente.insignia}</span>
+								<div class="flex flex-col gap-1">
+									<div class="flex flex-wrap items-center gap-2">
+										<strong class="font-display text-sm text-foreground">{patente.nome}</strong>
+										<span class="rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">{patente.rank}</span>
+										<span class="text-[11px] text-muted-foreground">{patente.acesso}</span>
+									</div>
+									<p class="text-xs text-muted-foreground">{patente.descricao}</p>
+								</div>
+							</div>
+						))
+					}
+				</div>
+			</div>
+		</section>
+
+		<!-- MÉTODOS DE ENSINO (NACIONALIDADES) -->
+		<section class="flex flex-col gap-4">
+			<h2 class="font-display text-xl font-semibold text-foreground">Métodos de Ensino (Nacionalidades)</h2>
+
+			<div class="panel-accent panel-accent--rose">
+				<p class="text-sm leading-relaxed text-muted-foreground">
+					O Método de Ensino define onde e como o seu Agente estudou e concede <strong class="text-foreground">bônus
+						fixos de perícia e/ou PM</strong>, refletindo a tradição mágica de cada região. Esses bônus são
+					<strong class="text-foreground">somados</strong> aos valores finais após a distribuição de Ocupação e
+					Interesse Pessoal, e <strong class="text-foreground">podem</strong> ultrapassar o limite de 75% da criação (o
+					limite vale apenas para a distribuição de pontos, não para o bônus de Método de Ensino).
+				</p>
+			</div>
+
+			<div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+				{
+					schools.map((school) => (
+						<div class="panel flex flex-col gap-2 p-4 transition hover:-translate-y-0.5 hover:border-primary/30">
+							<h4 class="font-display text-sm font-semibold text-foreground">
+								{school.title} <span class="font-sans text-[11px] font-normal text-muted-foreground">— {school.region}</span>
+							</h4>
+							<p class="text-xs text-muted-foreground">{school.flavor}</p>
+							<ul class="flex flex-col gap-1 text-xs text-muted-foreground">
+								{school.bonuses.map((bonus) => (
+									<li>{bonus}</li>
+								))}
+							</ul>
+							{school.special && (
+								<div class="mt-1 rounded-lg border border-primary/30 bg-primary/10 p-3 text-xs text-foreground">
+									{school.special}
+								</div>
+							)}
+						</div>
+					))
+				}
+			</div>
+		</section>
+	</main>
+</Layout>
