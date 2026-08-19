@@ -362,7 +362,7 @@ const categories: SpecCategory[] = [
 
 const patentes: Patente[] = [
 	{
-		insignia: '🔵',
+		insignia: '🎓',
 		nome: 'Cadete',
 		rank: 'Rank 1',
 		acesso: 'Acesso: Rank 1',
@@ -370,7 +370,7 @@ const patentes: Patente[] = [
 			'Agente em treinamento supervisionado. Ainda não possui autonomia operacional plena. Acesso apenas ao equipamento básico de campo.',
 	},
 	{
-		insignia: '🟢',
+		insignia: '🧭',
 		nome: 'Investigador',
 		rank: 'Rank 2',
 		acesso: 'Acesso: Rank 1–2',
@@ -378,7 +378,7 @@ const patentes: Patente[] = [
 			'Agente certificado para missões de baixo a médio risco. Trabalha de forma semi-independente com supervisão ocasional.',
 	},
 	{
-		insignia: '🟡',
+		insignia: '🛡️',
 		nome: 'Agente Pleno',
 		rank: 'Rank 3',
 		acesso: 'Acesso: Rank 1–3',
@@ -386,7 +386,7 @@ const patentes: Patente[] = [
 			'Agente operacional pleno. Autorizado a conduzir missões de alto risco de forma independente e liderar esquadrões em campo.',
 	},
 	{
-		insignia: '🟠',
+		insignia: '🎖️',
 		nome: 'Inspetor',
 		rank: 'Rank 4',
 		acesso: 'Acesso: Rank 1–4',
@@ -394,7 +394,7 @@ const patentes: Patente[] = [
 			'Veterano com histórico em operações críticas. Autorizado a requisitar equipamentos estratégicos de uso restrito.',
 	},
 	{
-		insignia: '🔴',
+		insignia: '👑',
 		nome: 'Comandante',
 		rank: 'Rank 5',
 		acesso: 'Acesso: Rank 1–5',
@@ -402,6 +402,8 @@ const patentes: Patente[] = [
 			'Autoridade máxima de campo no Conselho. Acesso irrestrito ao arsenal completo. Decide o destino de missões críticas.',
 	},
 ];
+
+const patenteColors = ['#38bdf8', '#34d399', '#facc15', '#fb923c', '#f2b84b'];
 
 const schools: SchoolCard[] = [
 	{
@@ -596,20 +598,30 @@ const schools: SchoolCard[] = [
 			</div>
 
 			<div class="panel-accent panel-accent--gold">
-				<h3 class="mb-3 font-display text-sm font-semibold text-amber-400">Hierarquia de Patentes</h3>
-				<div class="flex flex-col gap-3">
+				<h3 class="mb-4 font-display text-sm font-semibold text-amber-400">Hierarquia de Patentes</h3>
+				<div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
 					{
-						patentes.map((patente) => (
-							<div class="panel flex items-start gap-3 p-4">
-								<span class="text-2xl leading-none">{patente.insignia}</span>
-								<div class="flex flex-col gap-1">
-									<div class="flex flex-wrap items-center gap-2">
-										<strong class="font-display text-sm text-foreground">{patente.nome}</strong>
-										<span class="rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">{patente.rank}</span>
-										<span class="text-[11px] text-muted-foreground">{patente.acesso}</span>
-									</div>
-									<p class="text-xs text-muted-foreground">{patente.descricao}</p>
-								</div>
+						patentes.map((patente, i) => (
+							<div class="panel relative flex flex-col items-center gap-2 overflow-hidden p-4 text-center">
+								<div
+									class="absolute inset-x-0 top-0 h-0.5"
+									style={`background:${patenteColors[i]};`}
+								/>
+								<span
+									class="flex h-12 w-12 items-center justify-center rounded-full text-2xl leading-none ring-2"
+									style={`background:color-mix(in oklch, ${patenteColors[i]}, transparent 85%); box-shadow: inset 0 0 0 1px color-mix(in oklch, ${patenteColors[i]}, transparent 60%); --tw-ring-color: color-mix(in oklch, ${patenteColors[i]}, transparent 60%);`}
+								>
+									{patente.insignia}
+								</span>
+								<strong class="font-display text-sm text-foreground">{patente.nome}</strong>
+								<span
+									class="rounded-full px-2 py-0.5 text-[11px] font-medium"
+									style={`background:color-mix(in oklch, ${patenteColors[i]}, transparent 82%); color:${patenteColors[i]};`}
+								>
+									{patente.rank}
+								</span>
+								<p class="text-[11px] text-muted-foreground">{patente.acesso}</p>
+								<p class="text-xs text-muted-foreground">{patente.descricao}</p>
 							</div>
 						))
 					}
