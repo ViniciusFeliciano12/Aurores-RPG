@@ -13,5 +13,23 @@ export default defineConfig({
     plugins: [tailwindcss()]
   },
 
-  adapter: cloudflare()
+  adapter: cloudflare(),
+
+  security: {
+    csp: {
+      directives: [
+        "default-src 'self'",
+        "img-src 'self' data: blob: https:",
+        "connect-src 'self' https://*.supabase.co",
+        "font-src 'self' https://fonts.gstatic.com",
+      ],
+      styleDirective: {
+        resources: [
+          { resource: "'self'", kind: 'element' },
+          { resource: 'https://fonts.googleapis.com', kind: 'element' },
+          { resource: "'unsafe-inline'", kind: 'attribute' },
+        ],
+      },
+    },
+  }
 });

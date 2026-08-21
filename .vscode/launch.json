@@ -6,6 +6,20 @@
       "name": "Development server",
       "request": "launch",
       "type": "node-terminal"
+    },
+    {
+      "name": "Attach to Workers runtime",
+      "type": "node",
+      "request": "attach",
+      "port": 9229,
+      "restart": true,
+      "timeout": 30000
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Development server + debugger",
+      "configurations": ["Development server", "Attach to Workers runtime"]
     }
   ]
 }

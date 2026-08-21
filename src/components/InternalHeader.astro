@@ -79,16 +79,22 @@ const navItems: Array<NavItem & { key: Props['active'] }> = [
 
 <script>
 	import { supabase } from '../lib/supabase';
+	import { resolveAvatarUrl } from '../lib/avatar';
 
 	const redirectIfLoggedOut = document.getElementById('internal-header')?.dataset.redirectIfLoggedOut !== 'false';
 
-	function renderUser(user: NonNullable<Awaited<ReturnType<typeof supabase.auth.getSession>>['data']['session']>['user']) {
+	async function renderUser(
+		user: NonNullable<Awaited<ReturnType<typeof supabase.auth.getSession>>['data']['session']>['user'],
+		overrides?: { displayName?: string; avatarPath?: string | null }
+	) {
 		const displayName =
+			overrides?.displayName ||
 			(user.user_metadata?.display_name as string | undefined) ||
 			(user.user_metadata?.full_name as string | undefined) ||
 			user.email ||
 			'Usuário';
-		const avatarUrl = user.user_metadata?.avatar_url as string | undefined;
+		const avatarPath =
+			overrides?.avatarPath !== undefined ? overrides.avatarPath : (user.user_metadata?.avatar_path as string | undefined) ?? null;
 
 		const nameEl = document.getElementById('user-name');
 		if (nameEl) nameEl.textContent = displayName;
@@ -97,6 +103,7 @@ const navItems: Array<NavItem & { key: Props['active'] }> = [
 		if (fallbackEl) fallbackEl.textContent = displayName.trim().charAt(0).toUpperCase() || '?';
 
 		const imgEl = document.getElementById('user-avatar-img') as HTMLImageElement | null;
+		const avatarUrl = await resolveAvatarUrl(avatarPath);
 		if (imgEl) {
 			if (avatarUrl) {
 				imgEl.src = avatarUrl;
@@ -151,5 +158,11 @@ const navItems: Array<NavItem & { key: Props['active'] }> = [
 	document.getElementById('sign-out')?.addEventListener('click', async () => {
 		await supabase.auth.signOut();
 		window.location.href = '/';
+	});
+
+	window.addEventListener('profile-updated', async (e) => {
+		const detail = (e as CustomEvent<{ displayName?: string; avatarPath?: string | null }>).detail;
+		const { data } = await supabase.auth.getUser();
+		if (data.user) renderUser(data.user, detail);
 	});
 </script>

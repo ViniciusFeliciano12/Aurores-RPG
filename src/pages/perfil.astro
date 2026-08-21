@@ -1,5 +1,6 @@
 ---
 import AuthGatedPage from '../components/AuthGatedPage.astro';
+import ProfileForm from '../components/ProfileForm';
 ---
 
 <AuthGatedPage
@@ -7,7 +8,10 @@ import AuthGatedPage from '../components/AuthGatedPage.astro';
 	title="Perfil · Wyrdcall"
 	eyebrow="Área do jogador"
 	heading="Perfil"
-	description="Em construção — em breve você poderá gerenciar seus dados de conta aqui."
+	description="Gerencie sua foto, nome de usuário, senha e conta."
 	icon="👤"
-	emptyText="Nenhuma informação disponível ainda."
-/>
+>
+	<div class="mx-auto w-full max-w-lg">
+		<ProfileForm client:load />
+	</div>
+</AuthGatedPage>

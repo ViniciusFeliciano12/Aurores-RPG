@@ -11,18 +11,31 @@ Stack: [Astro](https://astro.build) (SSR) + [React](https://react.dev) (islands 
 ├── src/
 │   ├── pages/                 # rotas do site (roteamento por sistema de arquivos)
 │   │   ├── index.astro        # home: hero + login/cadastro + grade de áreas do sistema
-│   │   └── personagens.astro  # scaffold da área de fichas (protegida por sessão)
+│   │   ├── personagens.astro  # scaffold da área de fichas (protegida por sessão)
+│   │   ├── perfil.astro       # área de conta: foto, nome, senha, exclusão de conta
+│   │   ├── campanha.astro     # área de campanha (protegida por sessão)
+│   │   ├── acervo.astro       # acervo de itens do sistema
+│   │   ├── glossario.astro    # glossário de termos do sistema
+│   │   ├── regras-de-combate.astro   # regras de combate
+│   │   ├── regras-de-criacao.astro   # regras de criação de personagem
+│   │   └── api/
+│   │       └── delete-account.ts     # endpoint SSR: exclui a conta via service role key
 │   ├── layouts/
 │   │   └── Layout.astro       # <html>/<head> base, importa global.css
 │   ├── components/
 │   │   ├── App.tsx            # decide sessão: mostra AuthForm ou redireciona logado
 │   │   ├── AuthForm.tsx        # formulário de login/cadastro (Supabase Auth)
 │   │   ├── PasswordInput.tsx  # input de senha com toggle mostrar/ocultar
-│   │   └── ui/                 # componentes shadcn/ui (button, input, card, label...)
+│   │   ├── AuthGatedPage.astro # layout das páginas internas (header + gate de sessão)
+│   │   ├── InternalHeader.astro # header interno: navegação, avatar e nome do usuário
+│   │   ├── ProfileForm.tsx    # formulário do /perfil: foto, nome, senha, excluir conta
+│   │   ├── AvatarCropperModal.tsx # modal de recorte/zoom da foto antes do upload
+│   │   └── ui/                 # componentes shadcn/ui (button, input, card, label, dialog...)
 │   ├── styles/
 │   │   └── global.css         # entrada do Tailwind + tokens de tema (CSS variables)
 │   └── lib/
 │       ├── supabase.ts        # client do Supabase (usa PUBLIC_SUPABASE_URL/ANON_KEY)
+│       ├── avatar.ts          # upload de avatar no Storage + geração de signed URL
 │       └── utils.ts           # helper `cn()` (clsx + tailwind-merge) usado pelo shadcn/ui
 ├── components.json            # config do shadcn/ui (estilo, aliases, ícones)
 ├── astro.config.mjs           # integrações: react, tailwind, adapter cloudflare
@@ -49,6 +62,13 @@ npx shadcn@latest add <componente>   # ex.: npx shadcn@latest add dialog
 O tema (cores, raio de borda, fontes) é definido como CSS variables em
 `src/styles/global.css`; o site roda sempre no tema escuro definido em `:root`.
 
+### Headers de segurança
+
+O `astro.config.mjs` define uma Content-Security-Policy (via `security.csp` do
+Astro) liberando apenas `'self'`, o domínio do Supabase (`connect-src`) e o Google
+Fonts (`font-src`/estilos). Ajuste essas diretivas se adicionar uma nova origem
+externa (CDN, iframe, etc.), senão o recurso é bloqueado em produção.
+
 ## Configuração inicial
 
 1. Instale as dependências:
@@ -63,6 +83,11 @@ O tema (cores, raio de borda, fontes) é definido como CSS variables em
 3. No SQL Editor do dashboard do Supabase, rode o conteúdo de
    `supabase/migrations/0001_init.sql` inteiro, numa única execução, para criar as
    tabelas, triggers e policies de RLS.
+4. Crie um bucket **privado** chamado `avatars` no Storage do Supabase (Storage →
+   New bucket, "Public bucket" desligado) — as policies de acesso já vêm da migração.
+5. Para o endpoint `/api/delete-account` funcionar, adicione a `SUPABASE_SERVICE_ROLE_KEY`
+   (Project Settings → API Keys → service_role) nas variáveis de ambiente do Worker —
+   nunca exponha essa chave no client.
 
 ## Modelo de dados (Supabase)
 
@@ -81,6 +106,26 @@ O tema (cores, raio de borda, fontes) é definido como CSS variables em
 Toda a segurança de acesso (quem vê/edita o quê) vive nas RLS policies do
 `0001_init.sql`, não no frontend — o client fala direto com o Postgres via
 `anon`/publishable key.
+
+### Foto de perfil (Storage)
+
+A foto do usuário é recortada no client (`AvatarCropperModal.tsx`, canvas circular,
+zoom/arraste) e enviada como `image/webp` para o bucket privado `avatars`, em
+`<user_id>/avatar_<timestamp>.webp` (`src/lib/avatar.ts`). O caminho do arquivo é
+salvo tanto em `profiles.avatar_path` quanto no `user_metadata.avatar_path` do Supabase
+Auth — o header (`InternalHeader.astro`) e o `/perfil` leem do `user_metadata`, por
+isso os dois precisam ficar sincronizados a cada upload. Como o bucket é privado, a
+exibição sempre passa por uma signed URL de 1h gerada em `resolveAvatarUrl` — nunca
+uma URL pública direta. As policies de Storage (também em `0001_init.sql`) liberam
+leitura para o próprio dono e para colegas de campanha, e escrita só para o próprio
+dono.
+
+### Exclusão de conta
+
+O botão "Excluir minha conta" (`ProfileForm.tsx`) reautentica a senha atual e chama
+`POST /api/delete-account` com o access token da sessão. O endpoint (SSR, roda no
+Worker) usa a `SUPABASE_SERVICE_ROLE_KEY` para apagar o usuário via Admin API — o
+cascade do schema remove perfil, memberships e personagens junto.
 
 ## Comandos
 

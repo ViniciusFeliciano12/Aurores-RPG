@@ -10,11 +10,12 @@ interface Props {
 	heading: string;
 	description: string;
 	icon: string;
-	emptyText: string;
+	emptyText?: string;
 	requireAuth?: boolean;
 }
 
 const { active, title, eyebrow, heading, description, icon, emptyText, requireAuth = true } = Astro.props;
+const hasContent = Astro.slots.has('default');
 ---
 
 <Layout title={title}>
@@ -34,10 +35,16 @@ const { active, title, eyebrow, heading, description, icon, emptyText, requireAu
 			</div>
 		</div>
 
-		<div class="panel flex flex-col items-center gap-3 border-dashed px-6 py-16 text-center">
-			<span class="text-3xl opacity-70">{icon}</span>
-			<p class="text-sm text-muted-foreground">{emptyText}</p>
-		</div>
+		{
+			hasContent ? (
+				<slot />
+			) : (
+				<div class="panel flex flex-col items-center gap-3 border-dashed px-6 py-16 text-center">
+					<span class="text-3xl opacity-70">{icon}</span>
+					<p class="text-sm text-muted-foreground">{emptyText}</p>
+				</div>
+			)
+		}
 	</main>
 
 	{
